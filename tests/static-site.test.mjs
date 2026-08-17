@@ -23,6 +23,8 @@ test("dashboard uses the shared site theme and required headline metrics", () =>
 
 test("browser client is read-only and loopback-bound", () => {
   assert.match(app, /http:\/\/127\.0\.0\.1:47635\/api\/state/);
+  assert.match(app, /publicDashboardHosts\.has\(window\.location\.hostname\)/);
+  assert.match(app, /:\s*"\/api\/state"/);
   assert.doesNotMatch(app, /method:\s*["'](?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(app, /localStorage|sessionStorage|indexedDB/);
 });
