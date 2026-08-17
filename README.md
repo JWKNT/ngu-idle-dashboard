@@ -14,10 +14,10 @@ projection, Adventure route, purchase targets, resource allocation, equipment po
 Training, and key events.
 
 The public site contains no save file, telemetry archive, authentication token, injector, or game
-control endpoint. It reads the current snapshot from the laptop's fixed HTTPS Tailscale Funnel at
-`https://ngu-idle-laptop.tailae7349.ts.net/api/state`. The bridge accepts read-only requests and
-keeps no public history; if the laptop sleeps or the game/bridge stops, the dashboard stays online
-but reports the feed as offline. Anyone with the public URL can view the live snapshot.
+control endpoint. It discovers the laptop's current HTTPS Cloudflare Quick Tunnel from a public
+GitHub Gist containing only the tunnel URL. The bridge accepts read-only requests and keeps no
+public history; if the laptop sleeps or the game/bridge stops, the dashboard stays online but
+reports the feed as offline. Anyone with the public URL can view the live snapshot.
 
 ## Deployment
 
@@ -35,4 +35,4 @@ The dashboard is dependency-free:
 
 The autopilot repository retains a matching local copy of the static client because its bridge
 must serve the dashboard when offline. Bot strategy, injection, and telemetry production do not
-belong in this repository. Tailscale Funnel is configured on the laptop, not in this static repo.
+belong in this repository. The supervised tunnel and endpoint publisher run on the laptop.
