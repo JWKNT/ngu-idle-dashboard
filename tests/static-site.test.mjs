@@ -1,8 +1,8 @@
 /*
 FILE PURPOSE
 
-These dependency-free Node tests protect the dashboard's deployment and privacy contract. They
-verify the requested first-view metrics, shared theme dependency, fixed loopback endpoint, and
+These dependency-free Node tests protect the dashboard's deployment and read-only contract. They
+verify the requested first-view metrics, shared theme dependency, fixed public feed endpoint, and
 absence of browser-side mutation methods without attempting to simulate live game state.
 */
 
@@ -21,10 +21,11 @@ test("dashboard uses the shared site theme and required headline metrics", () =>
   assert.match(index, /id="metric-exp"/);
 });
 
-test("browser client is read-only and loopback-bound", () => {
-  assert.match(app, /http:\/\/127\.0\.0\.1:47635\/api\/state/);
-  assert.match(app, /publicDashboardHosts\.has\(window\.location\.hostname\)/);
+test("browser client is read-only and uses the fixed public laptop feed", () => {
+  assert.match(app, /https:\/\/ngu-idle-laptop\.tailae7349\.ts\.net\/api\/state/);
+  assert.match(app, /publicFeed = publicDashboardHosts\.has\(window\.location\.hostname\)/);
   assert.match(app, /:\s*"\/api\/state"/);
+  assert.doesNotMatch(app, /http:\/\/127\.0\.0\.1:47635\/api\/state/);
   assert.doesNotMatch(app, /method:\s*["'](?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(app, /localStorage|sessionStorage|indexedDB/);
 });
