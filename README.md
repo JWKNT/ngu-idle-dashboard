@@ -10,8 +10,10 @@ data or game-control code is hosted here.
 
 A static, read-only dashboard for the NGU Idle Autopilot. The deployed client follows the shared
 [jehlp.net site theme](https://jehlp.net/site-theme/) and presents the current rebirth plan, boss
-projection, Adventure route, purchase targets, resource allocation, equipment policy, Basic
-Training, and key events.
+projection, Adventure/ITOPOD route, resource allocation, exact equipped gear, physical inventory,
+Item List, ITOPOD perks, EXP/AP purchases, NGUs, Hacks, Wishes, Yggdrasil, Diggers, Beards, the
+full mechanic-unlock catalog, and consequential key events. Locked systems remain visible as
+progression context instead of disappearing from the interface.
 
 The public site contains no save file, telemetry archive, authentication token, injector, or game
 control endpoint. It discovers the laptop's current HTTPS Cloudflare Quick Tunnel from a public
@@ -26,12 +28,14 @@ GitHub Pages serves the repository root at
 
 The dashboard is dependency-free:
 
-- `index.html` owns semantic structure and the first-view progression summary.
+- `index.html` owns semantic structure: a compact decision surface first, followed by exhaustive
+  game-state reference sections using native disclosure controls.
 - `assets/styles.css` extends the shared jehlp.net design tokens without cards, gradients, or a
   separate visual system.
 - `assets/app.js` polls the fixed public read API on jehlp.net and same-origin API in local/private
   deployments, then renders confirmed telemetry.
-- `tests/static-site.test.mjs` verifies the read-only boundary and required top-level metrics.
+- `tests/static-site.test.mjs` verifies the read-only boundary, first-view metrics, and complete
+  progression-reference structure.
 
 The autopilot repository retains a matching local copy of the static client because its bridge
 must serve the dashboard when offline. Bot strategy, injection, and telemetry production do not

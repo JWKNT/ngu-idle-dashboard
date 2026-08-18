@@ -2,9 +2,9 @@
 FILE PURPOSE
 
 This dependency-free client discovers and polls the laptop's current read-only public tunnel,
-validates its telemetry envelope, and renders confirmed NGU state into the static dashboard. Local
-and private-host copies use their own origin. The discovery record contains only the tunnel URL;
-this client sends no commands, persists no game data, and exposes no mutation endpoint.
+validates its telemetry envelope, and renders the full confirmed NGU state into a hierarchy that
+keeps immediate decisions ahead of large reference tables. Local copies use their own origin. The
+client sends no commands, persists no game data, and exposes no mutation endpoint.
 */
 (() => {
   "use strict";
@@ -186,6 +186,26 @@ this client sends no commands, persists no game data, and exposes no mutation en
     setText("gold-balance", `${shortNumber(s.gold)} Gold`);
     setText("gold-decision", sentence(s.goldDecision));
     setText("gold-rate", `${shortNumber(s.goldIncomePerSecond)} net Gold/s`);
+
+    const stats = s.characterStats || {};
+    const res3Unlocked = Boolean(stats.res3Unlocked);
+    setText("res3-name", stats.res3Name || "Resource 3");
+    setText("res3-decision", res3Unlocked ? sentence(s.res3AllocationDecision || "Allocated to persistent Hacks and Wishes by marginal value") : "Not yet unlocked.");
+    setText("res3-value", res3Unlocked ? `${shortNumber(stats.res3Current - stats.res3Idle)} / ${shortNumber(stats.res3Current)}` : "Locked");
+    setText("res3-power", res3Unlocked ? shortNumber(stats.res3Power) : "—");
+    setText("res3-cap", res3Unlocked ? shortNumber(stats.res3Cap) : "—");
+    setText("res3-idle", res3Unlocked ? shortNumber(stats.res3Idle) : "—");
+    byId("res3-meter").style.width = `${res3Unlocked ? percent(number(stats.res3Current) - number(stats.res3Idle), stats.res3Current) : 0}%`;
+
+    setText("pp-balance", `${shortNumber(s.itopodPerkPoints)} PP`);
+    setText("pp-decision", sentence(s.itopodRouteReason));
+    setText("pp-progress", `${shortNumber(s.itopodPointProgress)} / ${shortNumber(s.itopodPointThreshold)} · ${shortNumber(s.itopodProgressPerKill)} per kill`);
+    setText("qp-balance", `${shortNumber(s.questPoints)} QP`);
+    setText("qp-decision", s.questUnlocked ? sentence(s.questInProgress ? `Quest ${number(s.questId)} in progress` : "No active quest") : "Not yet unlocked.");
+    setText("qp-progress", s.questUnlocked ? `${shortNumber(s.questQpPreview)} QP preview · ${number(s.questBanked)}/${number(s.questBankCap)} banked` : "Defeat the Beast to unlock quests");
+    setText("seed-blood-balance", `${shortNumber(stats.seeds)} seeds · ${shortNumber(stats.blood)} blood`);
+    setText("seed-blood-decision", s.yggFruitDecision || s.bloodMagicAllocationDecision, "Persistent-resource policy pending.");
+    setText("seed-blood-detail", `${text(s.yggSeedDecision, "Yggdrasil locked")} · ${text(s.bloodMagicAllocationDecision, "Blood Magic locked")}`);
   }
 
   function renderCombatInventory(s) {
@@ -196,6 +216,15 @@ this client sends no commands, persists no game data, and exposes no mutation en
     setText("combat-hp", `${shortNumber(s.adventureHP)} / ${shortNumber(s.adventureMaxHP)}`);
     setText("combat-collection", s.collectionMissingSummary || s.collectionReason, "—");
     setText("combat-reason", sentence(s.bossViabilityReason));
+
+    const stats = s.characterStats || {};
+    setText("fight-stats", `${shortNumber(stats.fightBossAttack)} / ${shortNumber(stats.fightBossDefense)}`);
+    setText("fight-hp", `${shortNumber(stats.fightBossCurrentHP)} / ${shortNumber(stats.fightBossMaxHP)}`);
+    setText("combat-meta", `${s.bossFighting ? "Fight Boss active" : "Fight Boss idle"} · ${text(s.nextTitanName, "Titan timing pending")}`);
+    setText("itopod-route", `${text(s.itopodMode, "locked")} · ${text(s.itopodRouteReason, "route pending")}`);
+    setText("itopod-floor", s.itopodRouteConfirmed ? `${number(s.itopodCurrentFloor)} / ${number(s.itopodHighestFloor)}` : "Not yet confirmed");
+    setText("itopod-range", `${number(s.itopodRangeStart)}–${number(s.itopodRangeEnd)} · one-hit ${number(s.itopodReachableOneHitFloor)}`);
+    setText("itopod-pp", `${shortNumber(s.itopodPointProgress)} / ${shortNumber(s.itopodPointThreshold)} · ${number(s.itopodKillsOnFloor)} kills on floor`);
 
     setText("gear-objective", s.loadoutObjective, "—");
     setText("inventory-space", `${number(s.inventoryUsedSlots)}/${number(s.inventoryTotalSlots)} used · ${number(s.inventoryFreeSlots)} free`);
@@ -209,11 +238,14 @@ this client sends no commands, persists no game data, and exposes no mutation en
     const hold = Boolean(s.rebirthExecutionHold);
     setText("rebirth-state", hold ? "unscheduled safety hold" : `${duration(Math.max(0, number(s.rebirthSeconds) - number(s.rebirthElapsed)))} remaining`);
     setText("rebirth-reason", sentence(s.rebirthReason));
-    setText("rebirth-current", scientific(s.rebirthCurrentAttackMultiplier));
-    setText("rebirth-preview", scientific(s.rebirthNextAttackMultiplierPreview));
-    setText("rebirth-ratio", `${number(s.rebirthProjectedAttackMultiplier).toFixed(4)}×`);
+    setText("rebirth-current", `${scientific(s.rebirthCurrentAttackMultiplier)} / ${scientific(s.rebirthCurrentDefenseMultiplier)}`);
+    setText("rebirth-preview", `${scientific(s.rebirthNextAttackMultiplierPreview)} / ${scientific(s.rebirthNextDefenseMultiplierPreview)}`);
+    const minimumRatio = number(s.rebirthMinimumNumberRatio, Math.min(number(s.rebirthProjectedAttackMultiplier), number(s.rebirthProjectedDefenseMultiplier)));
+    setText("rebirth-ratio", `${minimumRatio.toFixed(minimumRatio >= 0.1 ? 4 : 8)}× · ${s.rebirthNumberNonRegression ? "safe" : "weaker"}`);
+    setText("rebirth-catchup", `${shortNumber(s.rebirthExpectedCatchupExp)} XP · ${shortNumber(s.rebirthExpectedCatchupExpPerHour)}/h`);
+    setText("rebirth-ap", `${shortNumber(s.rebirthOptimizerProjectedAp || s.rebirthProjectedAp)} AP`);
     setText("rebirth-candidates", `${number(s.rebirthCandidateCount).toLocaleString()} · ${text(s.rebirthOptimizerModel, "model pending")}`);
-    setText("rebirth-safety", sentence(s.rebirthSafetyBlockReason));
+    setText("rebirth-safety", sentence(s.rebirthSafetyBlockReason || (s.rebirthNumberNonRegression ? "Both native Number previews preserve the currently banked multipliers" : "Native preview would make this run weaker")));
   }
 
   function renderTraining(s) {
@@ -238,6 +270,158 @@ this client sends no commands, persists no game data, and exposes no mutation en
     }));
   }
 
+  function renderTable(bodyId, records, mapRow, emptyMessage) {
+    const body = byId(bodyId);
+    if (!body) return;
+    const rows = Array.isArray(records) ? records : [];
+    if (!rows.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = body.closest("table")?.querySelectorAll("thead th").length || 1;
+      td.textContent = emptyMessage;
+      tr.append(td);
+      body.replaceChildren(tr);
+      return;
+    }
+    body.replaceChildren(...rows.map((record, index) => {
+      const mapped = mapRow(record, index);
+      const tr = document.createElement("tr");
+      if (mapped.className) tr.className = mapped.className;
+      for (const value of mapped.values) {
+        const td = document.createElement("td");
+        td.textContent = text(value);
+        tr.append(td);
+      }
+      tr.dataset.search = mapped.values.join(" ").toLowerCase();
+      return tr;
+    }));
+  }
+
+  function specialSummary(item) {
+    const specials = Array.isArray(item?.specials) ? item.specials : [];
+    return specials.length ? specials.map((entry) => `${text(entry.type)} ${shortNumber(entry.current)}/${shortNumber(entry.cap)}`).join(", ") : "—";
+  }
+
+  function renderCharacter(s) {
+    const stats = s.characterStats || {};
+    setText("stat-fight-attack", shortNumber(stats.fightBossAttack));
+    setText("stat-fight-defense", shortNumber(stats.fightBossDefense));
+    setText("stat-fight-hp", `${shortNumber(stats.fightBossCurrentHP)} / ${shortNumber(stats.fightBossMaxHP)}`);
+    setText("stat-adventure-power", shortNumber(stats.adventureAttack || s.adventurePower));
+    setText("stat-adventure-toughness", shortNumber(stats.adventureDefense || s.adventureToughness));
+    setText("stat-adventure-hp", `${shortNumber(stats.adventureCurrentHP || s.adventureHP)} / ${shortNumber(stats.adventureMaxHP || s.adventureMaxHP)}`);
+    setText("stat-energy-pcb", `${shortNumber(stats.energyPower)} / ${shortNumber(stats.energyCap)} / ${shortNumber(stats.energyBars)}`);
+    setText("stat-magic-pcb", `${shortNumber(stats.magicPower)} / ${shortNumber(stats.magicCap)} / ${shortNumber(stats.magicBars)}`);
+    setText("stat-res3-label", `${text(stats.res3Name, "R3")} P / C / B`);
+    setText("stat-res3-pcb", stats.res3Unlocked ? `${shortNumber(stats.res3Power)} / ${shortNumber(stats.res3Cap)} / ${shortNumber(stats.res3Bars)}` : "Not yet unlocked");
+
+    const gear = Array.isArray(s.equippedGear) ? s.equippedGear : [];
+    const equipped = gear.filter((item) => number(item.id) > 0);
+    setText("gear-summary", `${equipped.length}/${gear.length} slots filled · ${text(s.loadoutObjective, "objective pending")}`);
+    renderTable("gear-body", gear, (item) => ({
+      className: number(item.id) > 0 ? "" : "is-locked",
+      values: [item.slot, item.name, number(item.id) > 0 ? `${number(item.level)}${item.maxxed ? " · MAXX" : ""}` : "—", shortNumber(item.attack), shortNumber(item.defense), specialSummary(item)],
+    }), "Gear telemetry is not available from the installed build.");
+  }
+
+  function renderInventory(s) {
+    const inventory = Array.isArray(s.inventoryItems) ? s.inventoryItems : [];
+    const daycare = Array.isArray(s.daycareItems) ? s.daycareItems : [];
+    const macguffins = Array.isArray(s.macguffins) ? s.macguffins : [];
+    const list = Array.isArray(s.itemListEntries) ? s.itemListEntries : [];
+    setText("inventory-summary", `${inventory.length} physical items · ${number(s.inventoryFreeSlots)} free slots`);
+    renderTable("inventory-body", inventory, (item) => ({
+      className: item.maxxed ? "is-complete" : "",
+      values: [number(item.index) + 1, item.name, item.part, `${number(item.level)}${item.maxxed ? " · MAXX" : ""}`, shortNumber(item.attack), shortNumber(item.defense), specialSummary(item), item.locked ? "Locked" : "Removable"],
+    }), s.inventoryTotalSlots ? "Every physical inventory slot is empty." : "Inventory telemetry is not available from the installed build.");
+
+    setText("daycare-summary", daycare.length ? `${daycare.length} occupied` : "empty or not yet unlocked");
+    renderTable("daycare-body", daycare, (item) => ({ values: [number(item.index) + 1, item.name, `${number(item.level)}${item.maxxed ? " · MAXX" : ""}`, item.locked ? "Locked" : "Removable"] }), "No Item Daycare slots are occupied, or Daycare is not yet unlocked.");
+    setText("macguffin-summary", macguffins.length ? `${macguffins.length} equipped` : "not yet unlocked or empty");
+    renderTable("macguffin-body", macguffins, (item) => ({ values: [number(item.index) + 1, item.name, number(item.level), specialSummary(item)] }), "No MacGuffins are equipped; the system may not be unlocked yet.");
+
+    const maxxed = list.filter((item) => item.maxxed).length;
+    const catalog = number(s.itemListCatalogueCount, list.length);
+    setText("item-list-summary", `${list.length}/${catalog} discovered · ${maxxed} MAXXED · ${Math.max(0, catalog - list.length)} unseen`);
+    renderTable("item-list-body", list, (item) => ({
+      className: item.maxxed ? "is-complete" : "",
+      values: [item.id, item.name, item.dropped ? "Yes" : "No", item.maxxed ? "Yes" : "No", item.filtered ? "Yes" : "No"],
+    }), "No Item List entries have been discovered yet.");
+  }
+
+  function renderPermanent(s) {
+    const perks = Array.isArray(s.itopodPerks) ? s.itopodPerks : [];
+    const boughtPerks = perks.filter((perk) => number(perk.level) > 0).length;
+    setText("perks-summary", perks.length ? `${boughtPerks}/${perks.length} purchased · ${shortNumber(s.itopodPerkPoints)} PP available` : "not yet unlocked");
+    renderTable("perks-body", perks, (perk) => ({
+      className: !perk.unlocked ? "is-locked" : number(perk.level) >= number(perk.maxLevel) ? "is-complete" : "",
+      values: [perk.id, perk.name, perk.type, `${shortNumber(perk.level)} / ${shortNumber(perk.maxLevel)}`, shortNumber(perk.baseCost), perk.unlocked ? (number(perk.level) >= number(perk.maxLevel) ? "MAXXED" : "Available") : `Not yet unlocked · difficulty ${number(perk.difficulty)}`],
+    }), "ITOPOD perks are not yet unlocked.");
+
+    const expPurchases = Array.isArray(s.expPurchases) ? s.expPurchases : [];
+    setText("exp-purchases-summary", `${expPurchases.filter((entry) => entry.owned).length}/${expPurchases.length} active`);
+    renderTable("exp-purchases-body", expPurchases, (entry) => ({ className: entry.owned ? "is-complete" : "is-locked", values: [entry.name, typeof entry.value === "number" ? shortNumber(entry.value) : entry.value, entry.owned ? "Bought / active" : "Not bought"] }), "No permanent EXP purchase telemetry is available.");
+
+    const apPurchases = Array.isArray(s.apPurchases) ? s.apPurchases : [];
+    setText("ap-purchases-summary", `${apPurchases.filter((entry) => entry.owned).length}/${apPurchases.length} bought`);
+    renderTable("ap-purchases-body", apPurchases, (entry) => ({ className: entry.owned ? "is-complete" : "is-locked", values: [entry.id, entry.name, entry.owned ? "Bought" : entry.unlocked ? "Available" : "Not yet unlocked"] }), "No AP purchase telemetry is available.");
+
+    const ngus = Array.isArray(s.nguProgress) ? s.nguProgress : [];
+    setText("ngu-summary", ngus.length ? `${ngus.filter((entry) => entry.unlocked).length}/${ngus.length} tracks available` : "not yet unlocked");
+    renderTable("ngu-body", ngus, (entry) => ({ className: entry.unlocked ? "" : "is-locked", values: [entry.resource, `${entry.name}${entry.unlocked ? "" : " · not yet unlocked"}`, shortNumber(entry.normalLevel), shortNumber(entry.evilLevel), shortNumber(entry.sadisticLevel), shortNumber(entry.allocated)] }), "NGUs are not yet unlocked.");
+
+    const hacks = Array.isArray(s.hackProgress) ? s.hackProgress : [];
+    setText("hacks-summary", hacks.length && hacks.some((entry) => entry.unlocked) ? `${hacks.length} tracks · ${hacks.filter((entry) => number(entry.allocated) > 0).length} active` : "not yet unlocked");
+    renderTable("hacks-body", hacks, (entry) => ({ className: entry.unlocked ? "" : "is-locked", values: [entry.name, shortNumber(entry.level), shortNumber(entry.target), `${(number(entry.progress) * 100).toFixed(1)}%`, shortNumber(entry.allocated), entry.unlocked ? (number(entry.allocated) > 0 ? "Active" : "Idle") : "Not yet unlocked"] }), "Hacks are not yet unlocked.");
+
+    const wishes = Array.isArray(s.wishProgress) ? s.wishProgress : [];
+    setText("wishes-summary", wishes.length && wishes.some((entry) => entry.unlocked) ? `${wishes.filter((entry) => entry.unlocked).length}/${wishes.length} available` : "not yet unlocked");
+    renderTable("wishes-body", wishes, (entry) => ({ className: !entry.unlocked ? "is-locked" : number(entry.level) >= number(entry.maxLevel) ? "is-complete" : "", values: [entry.id, entry.name, `${shortNumber(entry.level)} / ${shortNumber(entry.maxLevel)}`, `${(number(entry.progress) * 100).toFixed(1)}%`, `${shortNumber(entry.energy)} / ${shortNumber(entry.magic)} / ${shortNumber(entry.res3)}`, entry.unlocked ? (number(entry.level) >= number(entry.maxLevel) ? "MAXXED" : number(entry.energy) + number(entry.magic) + number(entry.res3) > 0 ? "Active" : "Available") : "Not yet unlocked"] }), "Wishes are not yet unlocked.");
+
+    const fruits = Array.isArray(s.fruitProgress) ? s.fruitProgress : [];
+    setText("fruit-summary", fruits.length && fruits.some((entry) => entry.unlocked) ? `${fruits.filter((entry) => entry.unlocked).length}/${fruits.length} unlocked` : "not yet unlocked");
+    renderTable("fruit-body", fruits, (entry) => ({ className: entry.unlocked ? "" : "is-locked", values: [entry.name, entry.unlocked ? shortNumber(entry.maxTier) : "—", entry.unlocked ? shortNumber(entry.totalLevels) : "—", !entry.unlocked ? "Not yet unlocked" : entry.activated ? "Growing" : entry.permanentActivation ? "Permanent activation bought" : "Idle"] }), "Yggdrasil is not yet unlocked.");
+
+    const diggers = Array.isArray(s.diggerProgress) ? s.diggerProgress : [];
+    const beards = Array.isArray(s.beardProgress) ? s.beardProgress : [];
+    setText("digger-beard-summary", `${diggers.filter((entry) => entry.unlocked).length} diggers · ${beards.filter((entry) => entry.unlocked).length} beards unlocked`);
+    const combined = diggers.map((entry) => ({ system: "Digger", ...entry, permanent: entry.maxLevel }))
+      .concat(beards.map((entry) => ({ system: "Beard", ...entry, permanent: entry.permanentLevel })));
+    renderTable("digger-beard-body", combined, (entry) => ({ className: entry.unlocked ? "" : "is-locked", values: [entry.system, entry.name, entry.unlocked ? shortNumber(entry.level) : "—", entry.unlocked ? shortNumber(entry.permanent) : "—", !entry.unlocked ? "Not yet unlocked" : entry.active ? "Active" : "Idle"] }), "Diggers and Beards are not yet unlocked.");
+  }
+
+  function renderUnlocks(s) {
+    const unlocks = Array.isArray(s.mechanicUnlocks) ? s.mechanicUnlocks : [];
+    const list = byId("unlock-list");
+    if (!unlocks.length) {
+      list.innerHTML = "<li>Mechanic unlock telemetry is not available from the installed build.</li>";
+      setText("unlocks-summary", "telemetry pending");
+      return;
+    }
+    const unlocked = unlocks.filter((entry) => entry.unlocked).length;
+    setText("unlocks-summary", `${unlocked}/${unlocks.length} systems unlocked`);
+    list.replaceChildren(...unlocks.map((entry) => {
+      const item = document.createElement("li");
+      item.dataset.state = entry.unlocked ? "unlocked" : "locked";
+      const name = document.createElement("strong");
+      name.textContent = entry.name;
+      const status = document.createElement("span");
+      status.textContent = entry.unlocked ? "Unlocked" : "Not yet unlocked";
+      const hint = document.createElement("small");
+      hint.textContent = entry.unlocked ? "Available in this save" : entry.hint;
+      item.append(name, status, hint);
+      return item;
+    }));
+  }
+
+  function refreshTableFilters() {
+    document.querySelectorAll("[data-filter-target]").forEach((input) => {
+      const query = input.value.trim().toLowerCase();
+      const body = byId(input.dataset.filterTarget);
+      body?.querySelectorAll("tr").forEach((row) => { row.hidden = Boolean(query) && !(row.dataset.search || row.textContent.toLowerCase()).includes(query); });
+    });
+  }
+
   function renderEvents(events) {
     const list = byId("event-list");
     if (!Array.isArray(events) || !events.length) {
@@ -251,7 +435,7 @@ this client sends no commands, persists no game data, and exposes no mutation en
       timeNode.textContent = text(event.clock || event.time, "—");
       const kind = document.createElement("span");
       kind.className = "event-kind";
-      kind.textContent = text(event.category || event.kind, "event");
+      kind.textContent = `${text(event.category || event.kind, "event")}${event.importance ? ` · ${event.importance}` : ""}`;
       const message = document.createElement("span");
       message.className = "event-message";
       message.textContent = text(event.message, "—");
@@ -276,7 +460,12 @@ this client sends no commands, persists no game data, and exposes no mutation en
     renderCombatInventory(s);
     renderRebirth(s);
     renderTraining(s);
+    renderCharacter(s);
+    renderInventory(s);
+    renderPermanent(s);
+    renderUnlocks(s);
     renderEvents(envelope.events);
+    refreshTableFilters();
     lastSequence = number(s.decisionSequence, lastSequence);
   }
 
@@ -302,6 +491,7 @@ this client sends no commands, persists no game data, and exposes no mutation en
   if (!document.documentElement.dataset.theme) {
     document.documentElement.dataset.theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
+  document.querySelectorAll("[data-filter-target]").forEach((input) => input.addEventListener("input", refreshTableFilters));
   poll();
   window.setInterval(poll, pollMs);
 })();
