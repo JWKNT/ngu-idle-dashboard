@@ -1,9 +1,9 @@
 /*
 FILE PURPOSE
 
-These dependency-free Node tests protect the dashboard's deployment and read-only contract. They
-verify the requested first-view metrics, shared theme dependency, public endpoint discovery, and
-absence of browser-side mutation methods without attempting to simulate live game state.
+These dependency-free Node tests protect the dashboard's information architecture, deployment,
+and read-only contract. They verify the first-view metrics, comprehensive game-state sections,
+locked-system presentation, public endpoint discovery, and absence of mutation methods.
 */
 
 import assert from "node:assert/strict";
@@ -29,4 +29,23 @@ test("browser client is read-only and discovers the current public laptop feed",
   assert.doesNotMatch(app, /http:\/\/127\.0\.0\.1:47635\/api\/state/);
   assert.doesNotMatch(app, /method:\s*["'](?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(app, /localStorage|sessionStorage|indexedDB/);
+});
+
+test("dashboard exposes the complete progression reference beneath the first view", () => {
+  for (const id of ["now", "resources", "combat", "character", "inventory", "permanent", "unlocks", "events"]) {
+    assert.match(index, new RegExp(`id="${id}"`));
+  }
+  for (const body of ["gear-body", "inventory-body", "item-list-body", "perks-body", "exp-purchases-body", "ap-purchases-body", "ngu-body", "hacks-body", "wishes-body", "fruit-body", "digger-beard-body"]) {
+    assert.match(index, new RegExp(`id="${body}"`));
+  }
+  assert.match(index, /Not yet unlocked/);
+  assert.match(app, /renderUnlocks/);
+  assert.match(app, /mechanicUnlocks/);
+  assert.match(app, /rebirthNumberNonRegression/);
+});
+
+test("large reference tables use text nodes and local filtering", () => {
+  assert.match(app, /document\.createElement\("td"\)/);
+  assert.match(app, /data-filter-target/);
+  assert.doesNotMatch(app, /insertAdjacentHTML|document\.write/);
 });
