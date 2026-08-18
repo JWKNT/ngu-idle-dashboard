@@ -15,6 +15,11 @@ Item List, ITOPOD perks, EXP/AP purchases, NGUs, Hacks, Wishes, Yggdrasil, Digge
 full mechanic-unlock catalog, and consequential key events. Locked systems remain visible as
 progression context instead of disappearing from the interface.
 
+The first view also translates raw telemetry into the strategy currently in force: the exact
+loadout and objective, admitted resource sinks, Adventure/ITOPOD route, validated purchase
+targets, and the strict Number-preservation gate on rebirths. Low-chroma blue, green, amber, and
+red surfaces group related decisions and risks in both themes without relying on color alone.
+
 The public site contains no save file, telemetry archive, authentication token, injector, or game
 control endpoint. It discovers the laptop's current HTTPS Cloudflare Quick Tunnel from a public
 GitHub Gist containing only the tunnel URL. The bridge accepts read-only requests and keeps no

@@ -12,6 +12,7 @@ import test from "node:test";
 
 const index = await readFile(new URL("../index.html", import.meta.url), "utf8");
 const app = await readFile(new URL("../assets/app.js", import.meta.url), "utf8");
+const styles = await readFile(new URL("../assets/styles.css", import.meta.url), "utf8");
 
 test("dashboard uses the shared site theme and required headline metrics", () => {
   assert.match(index, /https:\/\/jehlp\.net\/site-theme\/v1\/base\.css/);
@@ -42,6 +43,18 @@ test("dashboard exposes the complete progression reference beneath the first vie
   assert.match(app, /renderUnlocks/);
   assert.match(app, /mechanicUnlocks/);
   assert.match(app, /rebirthNumberNonRegression/);
+});
+
+test("current strategy is explicit and soft semantic surfaces remain theme-safe", () => {
+  for (const id of ["strategy-loadout-title", "strategy-resource-title", "strategy-route-title", "strategy-spend-title"]) {
+    assert.match(index, new RegExp(`id="${id}"`));
+  }
+  assert.match(app, /function renderStrategy/);
+  assert.match(app, /strict Number \+ catch-up XP/);
+  assert.match(styles, /--soft-blue:/);
+  assert.match(styles, /--soft-green:/);
+  assert.match(styles, /background: var\(--paper\)/);
+  assert.doesNotMatch(styles, /var\(--background|var\(--bg\)/);
 });
 
 test("large reference tables use text nodes and local filtering", () => {

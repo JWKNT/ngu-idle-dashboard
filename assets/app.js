@@ -71,6 +71,18 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     return /[.!?]$/.test(result) ? result : `${result}.`;
   }
 
+  function optimizerModelLabel(value) {
+    const model = text(value, "").toLowerCase();
+    if (!model) return "model pending";
+    if (model.includes("number-nonregression") && model.includes("catchup-exp")) return "strict Number + catch-up XP";
+    if (model.includes("number-nonregression")) return "strict Number preservation";
+    return model.replaceAll("-", " ");
+  }
+
+  function joinedSentences(...values) {
+    return values.map((value) => text(value, "").trim()).filter(Boolean).map(sentence).join(" ") || "—";
+  }
+
   async function discoverEndpoint() {
     if (!publicFeed) return endpoint;
     if (endpoint) return endpoint;
@@ -126,32 +138,72 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     const rebirthRemaining = Math.max(0, number(s.rebirthSeconds) - number(s.rebirthElapsed));
     setText("metric-rebirth", hold ? "Unscheduled hold" : duration(rebirthRemaining));
     setText("metric-rebirth-note", hold ? "waiting for a strict Number improvement" : `target run age ${duration(s.rebirthSeconds)}`);
+    byId("metric-rebirth")?.closest("div")?.setAttribute("data-state", hold ? "hold" : "safe");
 
     const boss = number(s.bossRecordTargetId || s.nextBoss);
     setText("metric-boss-label", `Boss #${boss}`);
     setText("metric-boss", duration(s.bossDefeatEtaSeconds, true));
     setText("metric-boss-note", text(s.bossViabilityReason, "combat model pending"));
+    byId("metric-boss")?.closest("div")?.setAttribute("data-state", number(s.bossDefeatEtaSeconds, -1) >= 0 ? "active" : "hold");
 
     setText("metric-adventure", s.adventureTargetName, "Selecting route");
     const routeMode = s.majorUnlockActive ? `major unlock · ${s.majorUnlockName}`
       : s.collectionIsBackfill ? "MAXX backfill" : s.adventureBossOnlyForSet ? "boss-only collection" : "forward progression";
     setText("metric-adventure-note", routeMode);
+    byId("metric-adventure")?.closest("div")?.setAttribute("data-state", s.adventureTargetName ? "active" : "hold");
 
     const expName = purchaseName(s, "exp");
     const expShortfall = number(s.expShortfall);
     setText("metric-exp", expShortfall > 0 ? `${shortNumber(expShortfall)} XP` : "Ready");
     setText("metric-exp-note", `${expShortfall > 0 ? "until" : "for"} ${expName}`);
+    byId("metric-exp")?.closest("div")?.setAttribute("data-state", expShortfall > 0 ? "saving" : "safe");
   }
 
   function renderRoute(s) {
     setText("objective", s.objective, "Re-evaluating progression route.");
     setText("run-stage", `${text(s.stage, "unknown stage")} · ${text(s.syncState, "unsynchronized")}`);
     setText("route-title", s.loadoutObjective || s.objective, "Waiting for a synchronized transaction");
-    setText("route-reason", sentence(s.adventureControlReason || s.loadoutDecision || s.objective));
+    setText("route-reason", sentence(s.loadoutDecision || s.adventureControlReason || s.objective));
     setText("fact-mode", `${text(s.mode, "unknown")} · ${s.mutationsEnabled ? "automation active" : "read only"}`);
     setText("fact-snapshot", `#${number(s.decisionSequence).toLocaleString()}`);
     setText("fact-run-age", duration(s.rebirthElapsed));
     setText("fact-build", text(s.buildId, "—").slice(0, 8));
+  }
+
+  function renderStrategy(s) {
+    setText("strategy-loadout-title", s.loadoutObjective || "Hold the current verified gear");
+    setText("strategy-loadout-detail", sentence(s.loadoutDecision || "No physical swap is admitted until the optimizer proves a better complete set"));
+
+    const resourceActions = [];
+    const trainingEnergy = number(s.energyBasicTrainingAllocated);
+    const bloodMagic = number(s.magicBloodAllocated);
+    const timeMachineMagic = number(s.magicTimeMachineAllocated);
+    if (trainingEnergy > 0) resourceActions.push(`Push Basic Training with ${shortNumber(trainingEnergy)} Energy`);
+    else if (number(s.energyAllocated) > 0) resourceActions.push(`Keep ${shortNumber(s.energyAllocated)} Energy productive`);
+    const ritual = text(s.magicAllocationDecision, "").match(/ritual\s+(\d+)/i);
+    if (bloodMagic > 0) resourceActions.push(`${ritual ? `Run Blood ritual ${ritual[1]}` : "Run Blood Magic"} with ${shortNumber(bloodMagic)} Magic`);
+    else if (timeMachineMagic > 0) resourceActions.push(`Fund the Time Machine with ${shortNumber(timeMachineMagic)} Magic`);
+    else if (number(s.magicAllocated) > 0) resourceActions.push(`Keep ${shortNumber(s.magicAllocated)} Magic productive`);
+    setText("strategy-resource-title", resourceActions.join(" · ") || "Preserve productive resource sinks");
+    setText("strategy-resource-detail", joinedSentences(s.energyIdleReason, s.magicAllocationDecision || s.bloodMagicAllocationDecision, s.res3AllocationDecision));
+
+    const adventureVerb = s.majorUnlockActive ? `Unlock ${text(s.majorUnlockName, s.adventureTargetName)}`
+      : s.collectionIsBackfill ? `MAXX ${text(s.adventureTargetName, "the current zone")}`
+        : `Progress through ${text(s.adventureTargetName, "the selected zone")}`;
+    const itopodAction = s.itopodRouteConfirmed || s.itopodMode
+      ? `${text(s.itopodMode, "farm")} ITOPOD floor ${number(s.itopodRouteTargetFloor || s.itopodRangeStart || s.itopodCurrentFloor)}`
+      : "ITOPOD not yet admitted";
+    setText("strategy-route-title", `${adventureVerb} · ${itopodAction}`);
+    setText("strategy-route-detail", joinedSentences(s.collectionReason || s.collectionMissingSummary, s.adventureControlReason, s.itopodRouteReason));
+
+    const expTarget = purchaseName(s, "exp");
+    const apTarget = purchaseName(s, "ap");
+    const spendActions = [
+      number(s.expShortfall) > 0 ? `Save ${shortNumber(s.expShortfall)} XP for ${expTarget}` : `${expTarget} is affordable`,
+      number(s.apShortfall) > 0 ? `Save ${shortNumber(s.apShortfall)} AP for ${apTarget}` : `${apTarget} is affordable`,
+    ];
+    setText("strategy-spend-title", spendActions.join(" · "));
+    setText("strategy-spend-detail", joinedSentences(s.expDecision, s.apDecision, s.goldDecision));
   }
 
   function renderResources(s) {
@@ -236,6 +288,7 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
 
   function renderRebirth(s) {
     const hold = Boolean(s.rebirthExecutionHold);
+    byId("rebirth-heading")?.closest(".rebirth-panel")?.setAttribute("data-state", hold ? "hold" : "safe");
     setText("rebirth-state", hold ? "unscheduled safety hold" : `${duration(Math.max(0, number(s.rebirthSeconds) - number(s.rebirthElapsed)))} remaining`);
     setText("rebirth-reason", sentence(s.rebirthReason));
     setText("rebirth-current", `${scientific(s.rebirthCurrentAttackMultiplier)} / ${scientific(s.rebirthCurrentDefenseMultiplier)}`);
@@ -244,7 +297,7 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     setText("rebirth-ratio", `${minimumRatio.toFixed(minimumRatio >= 0.1 ? 4 : 8)}× · ${s.rebirthNumberNonRegression ? "safe" : "weaker"}`);
     setText("rebirth-catchup", `${shortNumber(s.rebirthExpectedCatchupExp)} XP · ${shortNumber(s.rebirthExpectedCatchupExpPerHour)}/h`);
     setText("rebirth-ap", `${shortNumber(s.rebirthOptimizerProjectedAp || s.rebirthProjectedAp)} AP`);
-    setText("rebirth-candidates", `${number(s.rebirthCandidateCount).toLocaleString()} · ${text(s.rebirthOptimizerModel, "model pending")}`);
+    setText("rebirth-candidates", `${number(s.rebirthCandidateCount).toLocaleString()} · ${optimizerModelLabel(s.rebirthOptimizerModel)}`);
     setText("rebirth-safety", sentence(s.rebirthSafetyBlockReason || (s.rebirthNumberNonRegression ? "Both native Number previews preserve the currently banked multipliers" : "Native preview would make this run weaker")));
   }
 
@@ -287,6 +340,7 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
       const mapped = mapRow(record, index);
       const tr = document.createElement("tr");
       if (mapped.className) tr.className = mapped.className;
+      if (mapped.tone) tr.dataset.tone = mapped.tone;
       for (const value of mapped.values) {
         const td = document.createElement("td");
         td.textContent = text(value);
@@ -430,6 +484,8 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     }
     list.replaceChildren(...events.slice(0, 30).map((event) => {
       const item = document.createElement("li");
+      item.dataset.importance = text(event.importance, "normal").toLowerCase();
+      item.dataset.category = text(event.category || event.kind, "event").toLowerCase();
       const timeNode = document.createElement("span");
       timeNode.className = "event-time";
       timeNode.textContent = text(event.clock || event.time, "—");
@@ -456,6 +512,7 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     byId("stale-banner").textContent = live ? "" : `The latest ${publicFeed ? "laptop" : "local"} snapshot is stale or partial. Values below are retained for diagnosis and are not proof of current actions.`;
     renderHeadline(s);
     renderRoute(s);
+    renderStrategy(s);
     renderResources(s);
     renderCombatInventory(s);
     renderRebirth(s);

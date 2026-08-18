@@ -21,8 +21,8 @@ and a sparse consequential-event ledger. The shared JWKNT theme remains the visu
     <title>NGU Idle Dashboard</title>
     <script src="https://jehlp.net/site-theme/v1/theme.js"></script>
     <link rel="stylesheet" href="https://jehlp.net/site-theme/v1/base.css">
-    <link rel="stylesheet" href="assets/styles.css?v=20260817.2">
-    <script src="assets/app.js?v=20260817.5" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=20260817.3">
+    <script src="assets/app.js?v=20260817.6" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#dashboard">Skip to dashboard</a>
@@ -43,10 +43,10 @@ and a sparse consequential-event ledger. The shared JWKNT theme remains the visu
       </section>
 
       <dl class="headline-metrics" aria-label="Current progression summary">
-        <div><dt>Rebirth</dt><dd id="metric-rebirth">—</dd><dd id="metric-rebirth-note" class="metric-note">waiting for optimizer</dd></div>
-        <div><dt id="metric-boss-label">Next boss</dt><dd id="metric-boss">—</dd><dd id="metric-boss-note" class="metric-note">waiting for combat model</dd></div>
-        <div><dt>Adventure</dt><dd id="metric-adventure">—</dd><dd id="metric-adventure-note" class="metric-note">waiting for route</dd></div>
-        <div><dt>EXP purchase</dt><dd id="metric-exp">—</dd><dd id="metric-exp-note" class="metric-note">waiting for purchase model</dd></div>
+        <div class="metric-safety"><dt>Rebirth</dt><dd id="metric-rebirth">—</dd><dd id="metric-rebirth-note" class="metric-note">waiting for optimizer</dd></div>
+        <div class="metric-combat"><dt id="metric-boss-label">Next boss</dt><dd id="metric-boss">—</dd><dd id="metric-boss-note" class="metric-note">waiting for combat model</dd></div>
+        <div class="metric-route"><dt>Adventure</dt><dd id="metric-adventure">—</dd><dd id="metric-adventure-note" class="metric-note">waiting for route</dd></div>
+        <div class="metric-economy"><dt>EXP purchase</dt><dd id="metric-exp">—</dd><dd id="metric-exp-note" class="metric-note">waiting for purchase model</dd></div>
       </dl>
       <div id="stale-banner" class="notice" role="status" aria-live="polite" hidden></div>
       <nav class="section-index" aria-label="Dashboard sections"><a href="#now">Now</a><a href="#resources">Resources</a><a href="#combat">Combat</a><a href="#character">Character</a><a href="#inventory">Inventory</a><a href="#permanent">Permanent</a><a href="#unlocks">Unlocks</a><a href="#events">Events</a></nav>
@@ -56,6 +56,15 @@ and a sparse consequential-event ledger. The shared JWKNT theme remains the visu
         <div class="route-grid">
           <div class="route-primary"><h3 id="route-title">Waiting for a synchronized transaction</h3><p id="route-reason">The dashboard reports confirmed game state, not intended inputs.</p></div>
           <dl class="compact-facts"><div><dt>Mode</dt><dd id="fact-mode">—</dd></div><div><dt>Snapshot</dt><dd id="fact-snapshot">—</dd></div><div><dt>Run age</dt><dd id="fact-run-age">—</dd></div><div><dt>Build</dt><dd id="fact-build">—</dd></div></dl>
+        </div>
+        <div class="strategy-block" aria-labelledby="strategy-heading">
+          <div class="strategy-heading"><p class="section-kicker">Strategy in force</p><h3 id="strategy-heading">What is being optimized right now</h3></div>
+          <div class="strategy-grid">
+            <article data-tone="blue"><p>Loadout</p><h4 id="strategy-loadout-title">Waiting for gear policy</h4><span id="strategy-loadout-detail">No verified swap has been reported.</span></article>
+            <article data-tone="green"><p>Resources</p><h4 id="strategy-resource-title">Waiting for allocation policy</h4><span id="strategy-resource-detail">No verified allocation has been reported.</span></article>
+            <article data-tone="blue"><p>Route</p><h4 id="strategy-route-title">Waiting for combat route</h4><span id="strategy-route-detail">No verified route has been reported.</span></article>
+            <article data-tone="green"><p>Spending</p><h4 id="strategy-spend-title">Waiting for purchase policy</h4><span id="strategy-spend-detail">No validated purchase target has been reported.</span></article>
+          </div>
         </div>
         <div class="subsection rebirth-panel" aria-labelledby="rebirth-heading">
           <div class="subsection-heading"><div><p class="section-kicker">Rebirth model</p><h3 id="rebirth-heading">Number may not regress</h3></div><p id="rebirth-state" class="section-meta">—</p></div>
