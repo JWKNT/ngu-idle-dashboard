@@ -2,9 +2,11 @@
 FILE PURPOSE
 
 This is the public and locally served NGU Idle dashboard shell. It organizes the bot's read-only
-telemetry as a game-state reference: immediate route and risk first, then resources, combat,
-character/equipment, physical inventory, permanent systems, the complete mechanic-unlock catalog,
-and a sparse consequential-event ledger. The shared JWKNT theme remains the visual foundation.
+telemetry as a game-state reference: the deployment/decision epoch, root transaction, staged
+authority, shadow scheduler, current/next rebirth decision, explicit no-reset holds, recovery
+alternatives, challenge/difficulty/END horizons, capacity, and action failures precede the
+broader resource, combat, inventory, and permanent-system reference. The shared JWKNT theme remains
+the visual foundation; this page has no mutation controls.
 -->
 <!doctype html>
 <html lang="en">
@@ -21,8 +23,8 @@ and a sparse consequential-event ledger. The shared JWKNT theme remains the visu
     <title>NGU Idle Dashboard</title>
     <script src="https://jehlp.net/site-theme/v1/theme.js"></script>
     <link rel="stylesheet" href="https://jehlp.net/site-theme/v1/base.css">
-    <link rel="stylesheet" href="assets/styles.css?v=20260817.3">
-    <script src="assets/app.js?v=20260817.6" defer></script>
+    <link rel="stylesheet" href="assets/styles.css?v=20260818.2">
+    <script src="assets/app.js?v=20260818.2" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#dashboard">Skip to dashboard</a>
@@ -43,35 +45,65 @@ and a sparse consequential-event ledger. The shared JWKNT theme remains the visu
       </section>
 
       <dl class="headline-metrics" aria-label="Current progression summary">
-        <div class="metric-safety"><dt>Rebirth</dt><dd id="metric-rebirth">—</dd><dd id="metric-rebirth-note" class="metric-note">waiting for optimizer</dd></div>
-        <div class="metric-combat"><dt id="metric-boss-label">Next boss</dt><dd id="metric-boss">—</dd><dd id="metric-boss-note" class="metric-note">waiting for combat model</dd></div>
-        <div class="metric-route"><dt>Adventure</dt><dd id="metric-adventure">—</dd><dd id="metric-adventure-note" class="metric-note">waiting for route</dd></div>
-        <div class="metric-economy"><dt>EXP purchase</dt><dd id="metric-exp">—</dd><dd id="metric-exp-note" class="metric-note">waiting for purchase model</dd></div>
+        <div><dt>Rebirth</dt><dd id="metric-rebirth">—</dd><dd id="metric-rebirth-note" class="metric-note">waiting for optimizer</dd></div>
+        <div><dt>Challenge</dt><dd id="metric-challenge">—</dd><dd id="metric-challenge-note" class="metric-note">waiting for admission evidence</dd></div>
+        <div><dt id="metric-boss-label">Next boss</dt><dd id="metric-boss">—</dd><dd id="metric-boss-note" class="metric-note">waiting for combat model</dd></div>
+        <div><dt>Adventure</dt><dd id="metric-adventure">—</dd><dd id="metric-adventure-note" class="metric-note">waiting for route</dd></div>
+        <div><dt>EXP purchase</dt><dd id="metric-exp">—</dd><dd id="metric-exp-note" class="metric-note">waiting for purchase model</dd></div>
       </dl>
       <div id="stale-banner" class="notice" role="status" aria-live="polite" hidden></div>
-      <nav class="section-index" aria-label="Dashboard sections"><a href="#now">Now</a><a href="#resources">Resources</a><a href="#combat">Combat</a><a href="#character">Character</a><a href="#inventory">Inventory</a><a href="#permanent">Permanent</a><a href="#unlocks">Unlocks</a><a href="#events">Events</a></nav>
+      <div id="action-error-banner" class="notice notice-error" role="alert" aria-live="assertive" hidden></div>
+      <nav class="section-index" aria-label="Dashboard sections"><a href="#now">Now</a><a href="#execution">Execution</a><a href="#alerts">Alerts</a><a href="#resources">Resources</a><a href="#combat">Combat</a><a href="#character">Character</a><a href="#inventory">Inventory</a><a href="#permanent">Permanent</a><a href="#unlocks">Unlocks</a><a href="#events">Events</a></nav>
 
       <section id="now" class="section-block" aria-labelledby="route-heading">
         <div class="section-heading"><div><p class="section-kicker">Now</p><h2 id="route-heading">Route, proof, and reset risk</h2></div><p id="run-stage" class="section-meta">—</p></div>
         <div class="route-grid">
           <div class="route-primary"><h3 id="route-title">Waiting for a synchronized transaction</h3><p id="route-reason">The dashboard reports confirmed game state, not intended inputs.</p></div>
-          <dl class="compact-facts"><div><dt>Mode</dt><dd id="fact-mode">—</dd></div><div><dt>Snapshot</dt><dd id="fact-snapshot">—</dd></div><div><dt>Run age</dt><dd id="fact-run-age">—</dd></div><div><dt>Build</dt><dd id="fact-build">—</dd></div></dl>
-        </div>
-        <div class="strategy-block" aria-labelledby="strategy-heading">
-          <div class="strategy-heading"><p class="section-kicker">Strategy in force</p><h3 id="strategy-heading">What is being optimized right now</h3></div>
-          <div class="strategy-grid">
-            <article data-tone="blue"><p>Loadout</p><h4 id="strategy-loadout-title">Waiting for gear policy</h4><span id="strategy-loadout-detail">No verified swap has been reported.</span></article>
-            <article data-tone="green"><p>Resources</p><h4 id="strategy-resource-title">Waiting for allocation policy</h4><span id="strategy-resource-detail">No verified allocation has been reported.</span></article>
-            <article data-tone="blue"><p>Route</p><h4 id="strategy-route-title">Waiting for combat route</h4><span id="strategy-route-detail">No verified route has been reported.</span></article>
-            <article data-tone="green"><p>Spending</p><h4 id="strategy-spend-title">Waiting for purchase policy</h4><span id="strategy-spend-detail">No validated purchase target has been reported.</span></article>
-          </div>
+          <dl class="compact-facts"><div><dt>Mode</dt><dd id="fact-mode">—</dd></div><div><dt>Snapshot</dt><dd id="fact-snapshot">—</dd></div><div><dt>Run age</dt><dd id="fact-run-age">—</dd></div><div><dt>Active MVID</dt><dd id="fact-build">—</dd></div><div><dt>Disk artifact</dt><dd id="fact-disk">—</dd></div><div><dt>Game DLL</dt><dd id="fact-game">—</dd></div><div><dt>Producer epoch</dt><dd id="fact-producer">—</dd></div><div><dt>Build identity</dt><dd id="fact-identity">—</dd></div></dl>
         </div>
         <div class="subsection rebirth-panel" aria-labelledby="rebirth-heading">
-          <div class="subsection-heading"><div><p class="section-kicker">Rebirth model</p><h3 id="rebirth-heading">Number may not regress</h3></div><p id="rebirth-state" class="section-meta">—</p></div>
+          <div class="subsection-heading"><div><p class="section-kicker">Rebirth model</p><h3 id="rebirth-heading">Reset, continue, or hold</h3></div><p id="rebirth-state" class="section-meta">—</p></div>
           <p id="rebirth-reason" class="lead-note">Waiting for optimizer evidence.</p>
-          <dl class="rebirth-facts"><div><dt>Current Number</dt><dd id="rebirth-current">—</dd></div><div><dt>Next preview</dt><dd id="rebirth-preview">—</dd></div><div><dt>Worst ratio</dt><dd id="rebirth-ratio">—</dd></div><div><dt>Catch-up EXP</dt><dd id="rebirth-catchup">—</dd></div><div><dt>Projected AP</dt><dd id="rebirth-ap">—</dd></div><div><dt>Candidate search</dt><dd id="rebirth-candidates">—</dd></div></dl>
-          <p id="rebirth-safety" class="section-note">No ordinary reset will execute if either banked Number multiplier falls.</p>
+          <dl class="decision-strip"><div><dt>Current policy</dt><dd id="rebirth-policy">—</dd></div><div><dt>Next action</dt><dd id="rebirth-next-action">—</dd></div><div><dt>Reset ETA</dt><dd id="rebirth-reset-eta">—</dd></div><div><dt>No-reset hold</dt><dd id="rebirth-hold">—</dd></div></dl>
+          <dl class="rebirth-facts"><div><dt>Current Number A / D</dt><dd id="rebirth-current">—</dd></div><div><dt>Native preview A / D</dt><dd id="rebirth-preview">—</dd></div><div><dt>Native preview ratios A / D</dt><dd id="rebirth-ratio">—</dd></div><div><dt>Selected checkpoint worst ratio</dt><dd id="rebirth-selected-ratio">—</dd></div><div><dt>Reset + replay ETA</dt><dd id="rebirth-reset-recovery">—</dd></div><div><dt>Continue-run ETA</dt><dd id="rebirth-continue-recovery">—</dd></div><div><dt>Selected cycle recovery</dt><dd id="rebirth-cycle-recovery">—</dd></div><div><dt>Next finite reset candidate</dt><dd id="rebirth-next-positive">—</dd></div><div><dt>Next model evaluation</dt><dd id="rebirth-next-evaluation">—</dd></div><div><dt>Catch-up EXP</dt><dd id="rebirth-catchup">—</dd></div><div><dt>Projected AP</dt><dd id="rebirth-ap">—</dd></div><div><dt>Candidate search</dt><dd id="rebirth-candidates">—</dd></div></dl>
+          <p id="rebirth-safety" class="section-note">Waiting for mutation-boundary evidence.</p>
         </div>
+        <div class="subsection challenge-panel" aria-labelledby="challenge-heading">
+          <div class="subsection-heading"><div><p class="section-kicker">Challenge scheduler</p><h3 id="challenge-heading">Next challenge and admission proof</h3></div><p id="challenge-state" class="section-meta">—</p></div>
+          <p id="challenge-reason" class="lead-note">Waiting for source-specific challenge evidence.</p>
+          <dl class="challenge-facts"><div><dt>Candidate</dt><dd id="challenge-name">—</dd></div><div><dt>Entry ETA</dt><dd id="challenge-entry-eta">—</dd></div><div><dt>Pessimistic clear ETA</dt><dd id="challenge-clear-eta">—</dd></div><div><dt>Recovery ETA</dt><dd id="challenge-recovery-eta">—</dd></div><div><dt>Target gate</dt><dd id="challenge-target-boss">—</dd></div><div><dt>Admission</dt><dd id="challenge-admission">—</dd></div></dl>
+        </div>
+      </section>
+
+      <section id="execution" class="section-block" aria-labelledby="execution-heading">
+        <div class="section-heading"><div><p class="section-kicker">Safety envelope</p><h2 id="execution-heading">Epoch, authority, and terminal forecast</h2></div><p id="execution-summary" class="section-meta">Waiting for a deployment-bound decision.</p></div>
+        <div class="execution-grid">
+          <article class="execution-card" id="transaction-card" data-state="pending">
+            <div class="card-heading"><h3>Root transaction</h3><strong id="transaction-state" class="state-chip">Pending</strong></div>
+            <dl class="data-list"><div><dt>Root ID</dt><dd id="transaction-root-id">Unavailable</dd></div><div><dt>Root state</dt><dd id="transaction-root-state">Unavailable</dd></div><div><dt>Step counts</dt><dd id="transaction-counts">Unavailable</dd></div><div><dt>Decision epoch</dt><dd id="decision-epoch">Unavailable</dd></div><div><dt>Root epoch</dt><dd id="root-epoch">Unavailable</dd></div><div><dt>Session action tail</dt><dd id="action-tail-state">Unavailable</dd></div><div><dt>Native bindings</dt><dd id="binding-state">Unavailable</dd></div><div><dt>Binding coverage</dt><dd id="binding-coverage">Unavailable</dd></div><div><dt>Loot capacity</dt><dd id="capacity-state">Unavailable</dd></div></dl>
+          </article>
+          <article class="execution-card" id="scheduler-card" data-state="held">
+            <div class="card-heading"><h3>Global scheduler</h3><strong id="scheduler-status" class="state-chip">Unavailable</strong></div>
+            <dl class="data-list"><div><dt>Authority</dt><dd id="scheduler-authority">Unavailable</dd></div><div><dt>Selected action</dt><dd id="scheduler-action">Unavailable</dd></div><div><dt>Next event</dt><dd id="scheduler-event">Unavailable</dd></div><div><dt>Provenance</dt><dd id="scheduler-provenance">Unavailable</dd></div><div><dt>Hashes S / M / O</dt><dd id="scheduler-hashes">Unavailable</dd></div></dl>
+            <dl class="forecast-strip"><div><dt>Mean</dt><dd id="scheduler-mean">Unavailable</dd></div><div><dt>p50</dt><dd id="scheduler-p50">Unavailable</dd></div><div><dt>p90</dt><dd id="scheduler-p90">Unavailable</dd></div><div><dt>Lower</dt><dd id="scheduler-lower">Unavailable</dd></div><div><dt>Gap</dt><dd id="scheduler-gap">Unavailable</dd></div><div><dt>Regret</dt><dd id="scheduler-regret">Unavailable</dd></div></dl>
+            <p id="scheduler-blocker" class="section-note">No scheduler evidence has been emitted.</p>
+          </article>
+        </div>
+        <div class="subsection"><div class="subsection-heading"><div><p class="section-kicker">Staged authority</p><h3>Live mutation ceiling</h3></div><p id="authority-stage" class="section-meta">Unavailable</p></div><ul id="authority-list" class="authority-list"><li data-state="unavailable"><strong>Authority unavailable</strong><span>No staged routes were emitted.</span></li></ul></div>
+        <div class="subsection"><div class="subsection-heading"><div><p class="section-kicker">Progression horizons</p><h3>Rebirth, challenge, difficulty, and END</h3></div><p class="section-meta">Unavailable means the producer emitted no finite estimate.</p></div>
+          <div class="branch-grid">
+            <article id="branch-rebirth" data-state="pending"><h4>Rebirth</h4><strong id="branch-rebirth-state">Unavailable</strong><p id="branch-rebirth-eta">Unavailable</p><small id="branch-rebirth-proof">Provenance unavailable</small></article>
+            <article id="branch-challenge" data-state="pending"><h4>Challenge</h4><strong id="branch-challenge-state">Unavailable</strong><p id="branch-challenge-eta">Unavailable</p><small id="branch-challenge-proof">Provenance unavailable</small></article>
+            <article id="branch-difficulty" data-state="held"><h4>Difficulty</h4><strong id="branch-difficulty-state">Unavailable</strong><p id="branch-difficulty-eta">Unavailable</p><small id="branch-difficulty-proof">Provenance unavailable</small></article>
+            <article id="branch-end" data-state="held"><h4>END</h4><strong id="branch-end-state">Unavailable</strong><p id="branch-end-eta">Unavailable</p><small id="branch-end-proof">Provenance unavailable</small></article>
+          </div>
+        </div>
+      </section>
+
+      <section id="alerts" class="section-block" aria-labelledby="alerts-heading">
+        <div class="section-heading"><div><p class="section-kicker">Execution health</p><h2 id="alerts-heading">Action errors and safety rejections</h2></div><p id="alerts-summary" class="section-meta">—</p></div>
+        <p class="lead-note">Repeated identical messages are grouped; counts cover only the exact deployment-bound producer session.</p>
+        <ol id="action-error-list" class="event-list alert-list"><li>No action failures are present in the current feed.</li></ol>
       </section>
 
       <section id="resources" class="section-block" aria-labelledby="resources-heading">
@@ -142,7 +174,7 @@ and a sparse consequential-event ledger. The shared JWKNT theme remains the visu
       </section>
 
       <section id="events" class="section-block" aria-labelledby="events-heading">
-        <div class="section-heading"><div><p class="section-kicker">Consequential timeline</p><h2 id="events-heading">Key events</h2></div><p class="section-meta">permanent gains, resets, records, unlocks, rare loot, deaths, and safety failures</p></div>
+        <div class="section-heading"><div><p class="section-kicker">Consequential timeline</p><h2 id="events-heading">Key events</h2></div><p class="section-meta">current-session permanent gains, resets, records, unlocks, rare loot, deaths, and safety failures</p></div>
         <ol id="event-list" class="event-list"><li>Waiting for the live event stream.</li></ol>
       </section>
 

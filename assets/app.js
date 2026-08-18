@@ -3,8 +3,11 @@ FILE PURPOSE
 
 This dependency-free client discovers and polls the laptop's current read-only public tunnel,
 validates its telemetry envelope, and renders the full confirmed NGU state into a hierarchy that
-keeps immediate decisions ahead of large reference tables. Local copies use their own origin. The
-client sends no commands, persists no game data, and exposes no mutation endpoint.
+keeps the deployment/decision epoch, root transaction, staged authority, shadow scheduler,
+rebirth/challenge/difficulty/END decisions, capacity, and action errors ahead of large reference
+tables. Missing optional fields stay visibly unavailable rather than becoming false zero values or
+ETAs. Held, Pending, and Quarantined are separate states. Local copies use their own origin. The client sends no commands, persists no game data, and
+exposes no mutation endpoint.
 */
 (() => {
   "use strict";
@@ -19,7 +22,8 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
   let lastSequence = -1;
 
   const byId = (id) => document.getElementById(id);
-  const number = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
+  const number = (value, fallback = 0) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)) ? Number(value) : fallback;
+  const optionalNumber = (value) => value !== null && value !== undefined && value !== "" && Number.isFinite(Number(value)) ? Number(value) : null;
   const text = (value, fallback = "—") => value === null || value === undefined || value === "" ? fallback : String(value);
   const setText = (id, value, fallback) => { const node = byId(id); if (node) node.textContent = text(value, fallback); };
 
@@ -54,6 +58,19 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     return `${approximate ? "about " : ""}${parts.join(" ")}`;
   }
 
+  function optionalDuration(seconds, unavailable = "Unavailable") {
+    const value = optionalNumber(seconds);
+    return value === null || value < 0 ? unavailable : duration(value, true);
+  }
+
+  function multiplierRatio(value) {
+    const ratio = optionalNumber(value);
+    if (ratio === null) return "Unavailable";
+    if (ratio === 0) return "0×";
+    if (ratio >= 0.01 && ratio < 1000) return `${compactDecimal(ratio, ratio >= 1 ? 3 : 6)}×`;
+    return `${ratio.toExponential(3).replace("e+", "e")}×`;
+  }
+
   function scientific(value) {
     const n = number(value);
     if (!n) return "0";
@@ -71,16 +88,25 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     return /[.!?]$/.test(result) ? result : `${result}.`;
   }
 
-  function optimizerModelLabel(value) {
-    const model = text(value, "").toLowerCase();
-    if (!model) return "model pending";
-    if (model.includes("number-nonregression") && model.includes("catchup-exp")) return "strict Number + catch-up XP";
-    if (model.includes("number-nonregression")) return "strict Number preservation";
-    return model.replaceAll("-", " ");
+  function stateToken(value) {
+    const normalized = text(value, "unavailable").toLowerCase();
+    if (normalized.includes("quarant")) return "quarantined";
+    if (normalized.includes("error") || normalized.includes("abort")) return "error";
+    if (normalized.includes("commit") || normalized.includes("complete")) return "committed";
+    if (normalized.includes("available") && !normalized.includes("unavailable")) return "available";
+    if (normalized.includes("pending") || normalized.includes("open") || normalized.includes("plan")
+      || normalized.includes("reset") || normalized.includes("active") || normalized.includes("admitted")) return "pending";
+    return "held";
   }
 
-  function joinedSentences(...values) {
-    return values.map((value) => text(value, "").trim()).filter(Boolean).map(sentence).join(" ") || "—";
+  function shortIdentity(value) {
+    const normalized = text(value, "");
+    return normalized ? normalized.slice(0, 12) : "Unavailable";
+  }
+
+  function confidence(value) {
+    const amount = optionalNumber(value);
+    return amount === null || amount < 0 || amount > 1 ? "Unavailable" : `${compactDecimal(amount * 100, 1)}%`;
   }
 
   async function discoverEndpoint() {
@@ -133,77 +159,356 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     return match ? match[1].trim() : "next validated purchase";
   }
 
-  function renderHeadline(s) {
-    const hold = Boolean(s.rebirthExecutionHold);
-    const rebirthRemaining = Math.max(0, number(s.rebirthSeconds) - number(s.rebirthElapsed));
-    setText("metric-rebirth", hold ? "Unscheduled hold" : duration(rebirthRemaining));
-    setText("metric-rebirth-note", hold ? "waiting for a strict Number improvement" : `target run age ${duration(s.rebirthSeconds)}`);
-    byId("metric-rebirth")?.closest("div")?.setAttribute("data-state", hold ? "hold" : "safe");
+  function fallbackObservability(s) {
+    const target = optionalNumber(s.rebirthSeconds);
+    const elapsed = optionalNumber(s.rebirthElapsed);
+    const hold = Boolean(s.rebirthExecutionHold) || (target !== null && target < 0);
+    const resetEta = !hold && target !== null && elapsed !== null ? Math.max(0, target - elapsed) : null;
+    const executionEnabled = typeof s.rebirthExecutionEnabled === "boolean" ? s.rebirthExecutionEnabled : null;
+    const action = target !== null && target < 0 ? "no-reset-challenge" : Boolean(s.rebirthExecutionHold) ? "hold"
+      : executionEnabled === false ? "disabled" : resetEta === 0 ? "reset-due" : resetEta !== null ? "reset-at-checkpoint" : "unknown";
+    const labels = {
+      "no-reset-challenge": "NO RESET — active challenge forbids rebirth",
+      hold: "HOLD — no executable reset is scheduled",
+      disabled: "DISABLED — rebirth execution is off",
+      "reset-due": "RESET DUE — waiting for the verified native boundary",
+      "reset-at-checkpoint": "RESET at the selected checkpoint",
+      unknown: "Rebirth decision telemetry is incomplete",
+    };
+    const previewRatios = [optionalNumber(s.rebirthProjectedAttackMultiplier), optionalNumber(s.rebirthProjectedDefenseMultiplier)].filter((value) => value !== null);
+    const challengeActive = String(s.stage || "").toLowerCase().includes("active challenge");
+    const challengeTargetBoss = optionalNumber(s.challengeTargetBoss);
+    const challengeTargetLevel = optionalNumber(s.challengeTargetLevel);
+    const root = s.mutationRoot && typeof s.mutationRoot === "object" ? s.mutationRoot : {};
+    const rootId = optionalNumber(root.id);
+    const rootEpoch = text(root.epochFingerprint, "");
+    const decisionEpoch = text(s.gameEpochFingerprint, "");
+    const rootEpochMatch = rootEpoch && decisionEpoch ? rootEpoch === decisionEpoch : null;
+    const quarantined = number(root.quarantinedSteps) > 0 || String(root.state || "").toLowerCase().includes("quarant") || rootEpochMatch === false;
+    const pending = number(root.pendingSteps) > 0 || ["open", "pending"].includes(String(root.state || "").toLowerCase());
+    const transactionStatus = quarantined ? "Quarantined" : s.automationTransactionError ? "Error"
+      : pending ? "Pending" : !rootId ? "Held" : s.automationTransactionComplete ? "Committed" : "Pending";
+    const schedulerSource = s.globalScheduler && typeof s.globalScheduler === "object" ? s.globalScheduler : {};
+    const nonnegative = (value) => { const parsed = optionalNumber(value); return parsed !== null && parsed >= 0 ? parsed : null; };
+    const schedulerProvenance = text(schedulerSource.provenance, "");
+    const schedulerSamples = nonnegative(schedulerSource.sampleCount);
+    const schedulerConfidence = schedulerProvenance && schedulerProvenance.toLowerCase() !== "unknown"
+      ? nonnegative(schedulerSource.confidence) : null;
+    const routes = {};
+    const staged = s.stagedAuthority && typeof s.stagedAuthority === "object" ? s.stagedAuthority : {};
+    ["verifiedReversible", "permanentPurchases", "moneyPit", "challenges", "difficulty", "titan1Through12", "titan13Through14", "move69", "endSequence"].forEach((key) => {
+      routes[key] = staged[key] === true ? "Enabled" : staged[key] === false ? "Held" : "Unavailable";
+    });
+    const inventoryTotal = nonnegative(s.inventoryTotalSlots);
+    const inventoryFree = nonnegative(s.inventoryFreeSlots);
+    const inventoryReserve = nonnegative(s.collectionRequiredFreeReserve);
+    const capacityMargin = inventoryFree !== null && inventoryReserve !== null ? inventoryFree - inventoryReserve : null;
+    const scheduler = {
+      status: text(schedulerSource.status, "Unavailable"), authority: schedulerSource.authority || null,
+      canExecute: typeof schedulerSource.canExecute === "boolean" ? schedulerSource.canExecute : null,
+      snapshotHash: schedulerSource.snapshotHash || null, modelHash: schedulerSource.modelHash || null,
+      objectiveHash: schedulerSource.objectiveHash || null, action: schedulerSource.action || null,
+      actionId: schedulerSource.actionId || null, nextEvent: schedulerSource.nextEvent || null,
+      eventId: schedulerSource.eventId || null, meanSeconds: nonnegative(schedulerSource.meanSeconds),
+      p50Seconds: nonnegative(schedulerSource.p50Seconds), p90Seconds: nonnegative(schedulerSource.p90Seconds),
+      lowerBoundSeconds: nonnegative(schedulerSource.lowerBoundSeconds), upperBoundSeconds: nonnegative(schedulerSource.upperBoundSeconds),
+      gapSeconds: nonnegative(schedulerSource.gapSeconds), regretSeconds: nonnegative(schedulerSource.regretSeconds),
+      blocker: schedulerSource.blocker || null, blockerDetail: schedulerSource.blockerDetail || null,
+      provenance: schedulerProvenance && schedulerProvenance.toLowerCase() !== "unknown" ? schedulerProvenance : null,
+      sampleCount: schedulerProvenance && schedulerProvenance.toLowerCase() !== "unknown" ? schedulerSamples : null,
+      confidence: schedulerConfidence,
+    };
+    return {
+      rebirth: {
+        action,
+        actionLabel: labels[action],
+        reason: s.rebirthSafetyBlockReason || s.rebirthReason || "No decision reason was emitted.",
+        noResetHold: hold || executionEnabled === false,
+        targetRunAgeSeconds: target !== null && target >= 0 ? target : null,
+        currentRunAgeSeconds: elapsed !== null && elapsed >= 0 ? elapsed : null,
+        resetEtaSeconds: resetEta,
+        nextPositiveEtaSeconds: optionalNumber(s.rebirthNextPositiveEtaSeconds),
+        nextEvaluationEtaSeconds: optionalNumber(s.rebirthNextEvaluationEtaSeconds),
+        etaReason: s.rebirthEtaReason || null,
+        resetRecoveryEtaSeconds: optionalNumber(s.rebirthRecoveryResetRouteEtaSeconds),
+        continueRecoveryEtaSeconds: optionalNumber(s.rebirthRecoveryContinueRouteEtaSeconds),
+        selectedCycleRecoveryEtaSeconds: optionalNumber(s.rebirthOptimizerRecordRecoveryEtaSeconds),
+        recoveryRemainingBosses: optionalNumber(s.rebirthRecoveryRemainingBosses),
+        recoveryReason: s.rebirthRecoveryReason || s.rebirthOptimizerRecoveryReason || "",
+        currentAttack: optionalNumber(s.rebirthCurrentAttackMultiplier),
+        currentDefense: optionalNumber(s.rebirthCurrentDefenseMultiplier),
+        previewAttack: optionalNumber(s.rebirthNextAttackMultiplierPreview),
+        previewDefense: optionalNumber(s.rebirthNextDefenseMultiplierPreview),
+        previewAttackRatio: optionalNumber(s.rebirthProjectedAttackMultiplier),
+        previewDefenseRatio: optionalNumber(s.rebirthProjectedDefenseMultiplier),
+        previewWorstRatio: previewRatios.length ? Math.min(...previewRatios) : null,
+        selectedCheckpointWorstRatio: optionalNumber(s.rebirthMinimumNumberRatio),
+        model: s.rebirthOptimizerModel || null,
+        provenance: s.rebirthEtaProvenance || null,
+        confidence: nonnegative(s.rebirthEtaConfidence),
+      },
+      challenge: {
+        status: challengeActive ? "active" : "none-admitted",
+        label: challengeActive ? "Active challenge (type unavailable)" : "No challenge admitted",
+        admitted: false,
+        active: challengeActive,
+        entryEtaSeconds: null,
+        clearEtaSeconds: optionalNumber(s.nextChallengeEtaSeconds ?? s.challengeEtaSeconds),
+        recoveryEtaSeconds: optionalNumber(s.challengeRecoveryEtaSeconds),
+        targetBoss: challengeTargetBoss !== null && challengeTargetBoss >= 0 ? challengeTargetBoss : null,
+        targetLevel: challengeTargetLevel !== null && challengeTargetLevel >= 0 ? challengeTargetLevel : null,
+        reason: s.challengeEvidenceSummary || "The producer emitted no challenge-admission evidence.",
+        provenance: s.challengeEtaProvenance || null,
+        confidence: nonnegative(s.challengeEtaConfidence),
+      },
+      difficulty: {
+        status: routes.difficulty === "Enabled" && (s.difficultyTarget || s.nextDifficulty || s.difficultyTransitionTarget)
+          ? "Pending" : routes.difficulty === "Held" ? "Held" : "Unavailable",
+        current: ["Normal", "Evil", "Sadistic"][number(s.difficulty, -1)] || null,
+        target: s.difficultyTarget || s.nextDifficulty || s.difficultyTransitionTarget || null,
+        etaSeconds: nonnegative(s.difficultyEtaSeconds ?? s.difficultyTransitionEtaSeconds),
+        blocker: s.difficultyBlocker || s.difficultyTransitionReason || null,
+        provenance: s.difficultyEtaProvenance || null,
+        confidence: nonnegative(s.difficultyEtaConfidence),
+      },
+      end: {
+        status: s.endgameReadyToTrigger === true && s.endgameExecutionAuthorized === true ? "Pending"
+          : s.endgameExecutionAuthorized === false || s.endgameReadyToTrigger === false ? "Held" : "Unavailable",
+        objective: s.endgameObjective || null, missing: s.endgameMissingSummary || null,
+        titan12VersionTarget: nonnegative(s.endgameTitan12VersionTarget),
+        ready: typeof s.endgameReadyToTrigger === "boolean" ? s.endgameReadyToTrigger : null,
+        authorized: typeof s.endgameExecutionAuthorized === "boolean" ? s.endgameExecutionAuthorized : null,
+        meanSeconds: scheduler.meanSeconds, p50Seconds: scheduler.p50Seconds,
+        p90Seconds: scheduler.p90Seconds, lowerBoundSeconds: scheduler.lowerBoundSeconds,
+        provenance: scheduler.provenance, confidence: scheduler.confidence,
+      },
+      identity: {
+        verifiedEnvelope: false,
+        decisionEnvelopeComplete: Boolean(s.buildId && s.producerSessionId && number(s.producerPid) > 0 && decisionEpoch),
+        joinStatus: "Pending",
+        deploymentDecisionMatch: false,
+        rootEpochMatchesDecision: rootEpochMatch,
+        buildId: s.buildId || null,
+        producerPid: optionalNumber(s.producerPid),
+        producerSessionId: s.producerSessionId || null,
+        diskArtifactSha256: s.diskArtifactSha256 || null,
+        gameAssemblySha256: s.gameAssemblySha256 || null,
+        activeMatchesDisk: s.activeMatchesDisk || "unknown",
+        decisionEpochFingerprint: decisionEpoch || null,
+        deploymentEpochFingerprint: null,
+        rootEpochFingerprint: rootEpoch || null,
+      },
+      transaction: {
+        status: transactionStatus,
+        complete: Boolean(s.automationTransactionComplete),
+        error: s.automationTransactionError || null,
+        rootId: rootId && rootId > 0 ? rootId : null,
+        rootState: root.state || "Unavailable",
+        rootEpochFingerprint: rootEpoch || null,
+        committedSteps: nonnegative(root.committedSteps), pendingSteps: nonnegative(root.pendingSteps),
+        rejectedSteps: nonnegative(root.rejectedSteps), quarantinedSteps: nonnegative(root.quarantinedSteps),
+      },
+      bindings: {
+        status: s.nativeBindingsComplete === true && number(s.nativeBindingFailureCount, -1) === 0
+          && number(s.nativeBindingDescriptorCount, -1) === number(s.nativeBindingBoundCount, -2)
+          ? "Complete" : s.nativeBindingsComplete === false || number(s.nativeBindingFailureCount) > 0
+            ? "Quarantined" : "Unavailable",
+        knownBuild: typeof s.nativeBindingKnownBuild === "boolean" ? s.nativeBindingKnownBuild : null,
+        complete: typeof s.nativeBindingsComplete === "boolean" ? s.nativeBindingsComplete : null,
+        descriptorCount: nonnegative(s.nativeBindingDescriptorCount),
+        boundCount: nonnegative(s.nativeBindingBoundCount),
+        failureCount: nonnegative(s.nativeBindingFailureCount),
+        failureSummary: s.nativeBindingFailureSummary || null,
+        provenance: s.nativeBindingDescriptorCount === undefined ? null : "LoadedAssemblyMetadata",
+      },
+      authority: { stage: s.authorityStage || "Unavailable", routes },
+      capacity: {
+        status: inventoryTotal === null || inventoryFree === null ? "Unavailable" : capacityMargin !== null && capacityMargin < 0 ? "Held" : "Available",
+        totalSlots: inventoryTotal, usedSlots: nonnegative(s.inventoryUsedSlots), freeSlots: inventoryFree,
+        requiredReserve: inventoryReserve, projectedNewSlots: nonnegative(s.collectionProjectedNewSlots),
+        marginSlots: capacityMargin, pressure: s.inventoryPressure || null,
+        provenance: inventoryTotal !== null && inventoryFree !== null ? "LiveCounters" : null,
+        confidence: inventoryTotal !== null && inventoryFree !== null ? 1 : null,
+        exactDeliveryProof: typeof s.capacityProofExact === "boolean" ? s.capacityProofExact : null,
+      },
+      scheduler,
+    };
+  }
+
+  function renderHeadline(s, observability) {
+    const rebirth = observability.rebirth;
+    const challenge = observability.challenge;
+    const headline = rebirth.action === "reset-at-checkpoint" ? optionalDuration(rebirth.resetEtaSeconds)
+      : rebirth.action === "reset-due" ? "Reset due"
+        : rebirth.action === "no-reset-challenge" ? "No reset"
+          : rebirth.action === "hold" ? "Planner hold"
+            : rebirth.action === "disabled" ? "Disabled" : "Unavailable";
+    setText("metric-rebirth", headline);
+    setText("metric-rebirth-note", rebirth.actionLabel);
+
+    setText("metric-challenge", challenge.active ? "Active" : challenge.admitted ? text(challenge.label) : "None admitted");
+    setText("metric-challenge-note", challenge.active ? text(challenge.label) : challenge.admitted
+      ? `entry ${optionalDuration(challenge.entryEtaSeconds)}` : text(challenge.reason, "admission evidence unavailable"));
 
     const boss = number(s.bossRecordTargetId || s.nextBoss);
     setText("metric-boss-label", `Boss #${boss}`);
     setText("metric-boss", duration(s.bossDefeatEtaSeconds, true));
     setText("metric-boss-note", text(s.bossViabilityReason, "combat model pending"));
-    byId("metric-boss")?.closest("div")?.setAttribute("data-state", number(s.bossDefeatEtaSeconds, -1) >= 0 ? "active" : "hold");
 
     setText("metric-adventure", s.adventureTargetName, "Selecting route");
     const routeMode = s.majorUnlockActive ? `major unlock · ${s.majorUnlockName}`
       : s.collectionIsBackfill ? "MAXX backfill" : s.adventureBossOnlyForSet ? "boss-only collection" : "forward progression";
     setText("metric-adventure-note", routeMode);
-    byId("metric-adventure")?.closest("div")?.setAttribute("data-state", s.adventureTargetName ? "active" : "hold");
 
     const expName = purchaseName(s, "exp");
     const expShortfall = number(s.expShortfall);
     setText("metric-exp", expShortfall > 0 ? `${shortNumber(expShortfall)} XP` : "Ready");
     setText("metric-exp-note", `${expShortfall > 0 ? "until" : "for"} ${expName}`);
-    byId("metric-exp")?.closest("div")?.setAttribute("data-state", expShortfall > 0 ? "saving" : "safe");
   }
 
-  function renderRoute(s) {
+  function renderRoute(s, observability) {
+    const identity = observability.identity;
     setText("objective", s.objective, "Re-evaluating progression route.");
     setText("run-stage", `${text(s.stage, "unknown stage")} · ${text(s.syncState, "unsynchronized")}`);
     setText("route-title", s.loadoutObjective || s.objective, "Waiting for a synchronized transaction");
-    setText("route-reason", sentence(s.loadoutDecision || s.adventureControlReason || s.objective));
+    setText("route-reason", sentence(s.adventureControlReason || s.loadoutDecision || s.objective));
     setText("fact-mode", `${text(s.mode, "unknown")} · ${s.mutationsEnabled ? "automation active" : "read only"}`);
     setText("fact-snapshot", `#${number(s.decisionSequence).toLocaleString()}`);
     setText("fact-run-age", duration(s.rebirthElapsed));
-    setText("fact-build", text(s.buildId, "—").slice(0, 8));
+    setText("fact-build", text(identity.buildId, "unavailable").slice(0, 12));
+    setText("fact-disk", text(identity.diskArtifactSha256, "unavailable").slice(0, 12));
+    setText("fact-game", text(identity.gameAssemblySha256, "unavailable").slice(0, 12));
+    setText("fact-producer", identity.producerPid && identity.producerSessionId
+      ? `${identity.producerPid.toLocaleString()} · ${identity.producerSessionId.slice(0, 12)}` : "unverified");
+    setText("fact-identity", `${identity.verifiedEnvelope ? "epoch verified" : "epoch incomplete"} · ${text(identity.activeMatchesDisk, "disk match unknown").replaceAll("-", " ")}`);
   }
 
-  function renderStrategy(s) {
-    setText("strategy-loadout-title", s.loadoutObjective || "Hold the current verified gear");
-    setText("strategy-loadout-detail", sentence(s.loadoutDecision || "No physical swap is admitted until the optimizer proves a better complete set"));
+  function renderExecution(envelope, observability) {
+    const identity = observability.identity;
+    const transaction = observability.transaction;
+    const scheduler = observability.scheduler;
+    const bindings = observability.bindings || {};
+    const capacity = observability.capacity;
+    const authority = observability.authority;
+    const actionTail = envelope.actionTail && typeof envelope.actionTail === "object" ? envelope.actionTail : {};
+    const transactionToken = stateToken(transaction.status);
+    const transactionCard = byId("transaction-card");
+    if (transactionCard) transactionCard.dataset.state = transactionToken;
+    setText("transaction-state", transaction.status, "Unavailable");
+    setText("transaction-root-id", transaction.rootId === null || transaction.rootId === undefined ? "Unavailable" : `#${Number(transaction.rootId).toLocaleString()}`);
+    setText("transaction-root-state", transaction.rootState, "Unavailable");
+    const stepParts = [
+      ["committed", transaction.committedSteps], ["pending", transaction.pendingSteps],
+      ["rejected", transaction.rejectedSteps], ["quarantined", transaction.quarantinedSteps],
+    ].filter(([, value]) => optionalNumber(value) !== null).map(([label, value]) => `${label} ${Number(value).toLocaleString()}`);
+    setText("transaction-counts", stepParts.length ? stepParts.join(" · ") : "Unavailable");
+    setText("decision-epoch", shortIdentity(identity.decisionEpochFingerprint));
+    setText("root-epoch", identity.rootEpochFingerprint
+      ? `${shortIdentity(identity.rootEpochFingerprint)} · ${identity.rootEpochMatchesDecision === true ? "matched" : identity.rootEpochMatchesDecision === false ? "mismatch" : "unverified"}`
+      : "Unavailable");
+    setText("action-tail-state", actionTail.status
+      ? `${text(actionTail.status)}${actionTail.producerSessionId ? ` · ${shortIdentity(actionTail.producerSessionId)}` : ""}`
+      : "Unavailable");
+    setText("binding-state", `${text(bindings.status, "Unavailable")}${bindings.knownBuild === true ? " · audited build" : bindings.knownBuild === false ? " · unknown build" : ""}`);
+    const bindingCounts = optionalNumber(bindings.descriptorCount) === null
+      ? "Unavailable"
+      : `${Number(bindings.boundCount || 0).toLocaleString()} / ${Number(bindings.descriptorCount).toLocaleString()} bound · ${Number(bindings.failureCount || 0).toLocaleString()} failures`;
+    setText("binding-coverage", bindings.failureSummary ? `${bindingCounts} · ${bindings.failureSummary}` : bindingCounts);
+    const capacityParts = capacity.freeSlots === null || capacity.freeSlots === undefined
+      ? [] : [`${Number(capacity.freeSlots).toLocaleString()} free`];
+    if (capacity.requiredReserve !== null && capacity.requiredReserve !== undefined) capacityParts.push(`reserve ${Number(capacity.requiredReserve).toLocaleString()}`);
+    if (capacity.marginSlots !== null && capacity.marginSlots !== undefined) capacityParts.push(`margin ${Number(capacity.marginSlots).toLocaleString()}`);
+    if (capacity.provenance) capacityParts.push(capacity.provenance);
+    if (capacity.confidence !== null && capacity.confidence !== undefined) capacityParts.push(`${confidence(capacity.confidence)} observed-state confidence`);
+    capacityParts.push(capacity.exactDeliveryProof === true ? "exact delivery proof" : capacity.exactDeliveryProof === false ? "delivery proof rejected" : "delivery proof unavailable");
+    setText("capacity-state", `${text(capacity.status, "Unavailable")}${capacityParts.length ? ` · ${capacityParts.join(" · ")}` : ""}`);
 
-    const resourceActions = [];
-    const trainingEnergy = number(s.energyBasicTrainingAllocated);
-    const bloodMagic = number(s.magicBloodAllocated);
-    const timeMachineMagic = number(s.magicTimeMachineAllocated);
-    if (trainingEnergy > 0) resourceActions.push(`Push Basic Training with ${shortNumber(trainingEnergy)} Energy`);
-    else if (number(s.energyAllocated) > 0) resourceActions.push(`Keep ${shortNumber(s.energyAllocated)} Energy productive`);
-    const ritual = text(s.magicAllocationDecision, "").match(/ritual\s+(\d+)/i);
-    if (bloodMagic > 0) resourceActions.push(`${ritual ? `Run Blood ritual ${ritual[1]}` : "Run Blood Magic"} with ${shortNumber(bloodMagic)} Magic`);
-    else if (timeMachineMagic > 0) resourceActions.push(`Fund the Time Machine with ${shortNumber(timeMachineMagic)} Magic`);
-    else if (number(s.magicAllocated) > 0) resourceActions.push(`Keep ${shortNumber(s.magicAllocated)} Magic productive`);
-    setText("strategy-resource-title", resourceActions.join(" · ") || "Preserve productive resource sinks");
-    setText("strategy-resource-detail", joinedSentences(s.energyIdleReason, s.magicAllocationDecision || s.bloodMagicAllocationDecision, s.res3AllocationDecision));
+    setText("execution-summary", `${text(identity.joinStatus, "Pending")} deployment/decision join · ${text(transaction.status, "Unavailable")} root`);
+    const schedulerCard = byId("scheduler-card");
+    if (schedulerCard) schedulerCard.dataset.state = scheduler.authority === "ShadowOnly" ? "held" : stateToken(scheduler.status);
+    setText("scheduler-status", scheduler.status, "Unavailable");
+    setText("scheduler-authority", `${text(scheduler.authority, "Unavailable")}${scheduler.canExecute === false ? " · cannot execute" : scheduler.canExecute === true ? " · executable" : ""}`);
+    setText("scheduler-action", scheduler.action ? `${scheduler.action}${scheduler.actionId ? ` · ${scheduler.actionId}` : ""}` : "Unavailable");
+    setText("scheduler-event", scheduler.nextEvent ? `${scheduler.nextEvent}${scheduler.eventId ? ` · ${scheduler.eventId}` : ""}` : "Unavailable");
+    const provenanceParts = [];
+    if (scheduler.provenance) provenanceParts.push(scheduler.provenance);
+    if (scheduler.sampleCount !== null && scheduler.sampleCount !== undefined) provenanceParts.push(`${Number(scheduler.sampleCount).toLocaleString()} samples`);
+    if (scheduler.confidence !== null && scheduler.confidence !== undefined) provenanceParts.push(`${confidence(scheduler.confidence)} confidence`);
+    setText("scheduler-provenance", provenanceParts.length ? provenanceParts.join(" · ") : "Unavailable");
+    const hashes = [scheduler.snapshotHash, scheduler.modelHash, scheduler.objectiveHash];
+    setText("scheduler-hashes", hashes.some(Boolean) ? hashes.map(shortIdentity).join(" / ") : "Unavailable");
+    setText("scheduler-mean", optionalDuration(scheduler.meanSeconds));
+    setText("scheduler-p50", optionalDuration(scheduler.p50Seconds));
+    setText("scheduler-p90", optionalDuration(scheduler.p90Seconds));
+    setText("scheduler-lower", optionalDuration(scheduler.lowerBoundSeconds));
+    setText("scheduler-gap", optionalDuration(scheduler.gapSeconds));
+    setText("scheduler-regret", optionalDuration(scheduler.regretSeconds));
+    setText("scheduler-blocker", scheduler.blocker
+      ? `${scheduler.blocker}${scheduler.blockerDetail ? ` — ${scheduler.blockerDetail}` : ""}`
+      : "No named scheduler blocker was emitted.");
 
-    const adventureVerb = s.majorUnlockActive ? `Unlock ${text(s.majorUnlockName, s.adventureTargetName)}`
-      : s.collectionIsBackfill ? `MAXX ${text(s.adventureTargetName, "the current zone")}`
-        : `Progress through ${text(s.adventureTargetName, "the selected zone")}`;
-    const itopodAction = s.itopodRouteConfirmed || s.itopodMode
-      ? `${text(s.itopodMode, "farm")} ITOPOD floor ${number(s.itopodRouteTargetFloor || s.itopodRangeStart || s.itopodCurrentFloor)}`
-      : "ITOPOD not yet admitted";
-    setText("strategy-route-title", `${adventureVerb} · ${itopodAction}`);
-    setText("strategy-route-detail", joinedSentences(s.collectionReason || s.collectionMissingSummary, s.adventureControlReason, s.itopodRouteReason));
+    setText("authority-stage", authority.stage, "Unavailable");
+    const labels = {
+      verifiedReversible: "Verified reversible", permanentPurchases: "Permanent purchases",
+      moneyPit: "Money Pit", challenges: "Challenges", difficulty: "Difficulty",
+      titan1Through12: "Titans 1–12", titan13Through14: "Titans 13–14",
+      move69: "MOVE69", endSequence: "END sequence",
+    };
+    const authorityList = byId("authority-list");
+    const routes = authority.routes && typeof authority.routes === "object" ? authority.routes : {};
+    authorityList?.replaceChildren(...Object.entries(labels).map(([key, label]) => {
+      const item = document.createElement("li");
+      const routeState = text(routes[key], "Unavailable");
+      item.dataset.state = routeState.toLowerCase();
+      const name = document.createElement("strong"); name.textContent = label;
+      const state = document.createElement("span"); state.textContent = routeState;
+      item.append(name, state);
+      return item;
+    }));
 
-    const expTarget = purchaseName(s, "exp");
-    const apTarget = purchaseName(s, "ap");
-    const spendActions = [
-      number(s.expShortfall) > 0 ? `Save ${shortNumber(s.expShortfall)} XP for ${expTarget}` : `${expTarget} is affordable`,
-      number(s.apShortfall) > 0 ? `Save ${shortNumber(s.apShortfall)} AP for ${apTarget}` : `${apTarget} is affordable`,
+    const branches = [
+      {
+        key: "rebirth", state: observability.rebirth.actionLabel,
+        status: observability.rebirth.action,
+        eta: observability.rebirth.resetEtaSeconds,
+        detail: observability.rebirth.model || observability.rebirth.provenance,
+        confidence: observability.rebirth.confidence,
+      },
+      {
+        key: "challenge", state: observability.challenge.label,
+        status: observability.challenge.status,
+        eta: observability.challenge.clearEtaSeconds,
+        detail: observability.challenge.provenance,
+        confidence: observability.challenge.confidence,
+      },
+      {
+        key: "difficulty", state: observability.difficulty.target
+          ? `${text(observability.difficulty.current, "Unavailable")} → ${observability.difficulty.target}`
+          : `${text(observability.difficulty.current, "Unavailable")} · ${text(observability.difficulty.status, "Unavailable")}`,
+        status: observability.difficulty.status,
+        eta: observability.difficulty.etaSeconds,
+        detail: observability.difficulty.blocker || observability.difficulty.provenance,
+        confidence: observability.difficulty.confidence,
+      },
+      {
+        key: "end", state: observability.end.status,
+        status: observability.end.status,
+        eta: observability.end.p90Seconds,
+        detail: observability.end.missing || observability.end.provenance,
+        confidence: observability.end.confidence,
+      },
     ];
-    setText("strategy-spend-title", spendActions.join(" · "));
-    setText("strategy-spend-detail", joinedSentences(s.expDecision, s.apDecision, s.goldDecision));
+    for (const branch of branches) {
+      const article = byId(`branch-${branch.key}`);
+      if (article) article.dataset.state = stateToken(branch.status);
+      setText(`branch-${branch.key}-state`, branch.state, "Unavailable");
+      const etaLabel = branch.key === "end" ? "p90" : branch.key === "challenge" ? "clear" : "ETA";
+      setText(`branch-${branch.key}-eta`, `${etaLabel} ${optionalDuration(branch.eta)}`);
+      const proof = [];
+      if (branch.detail) proof.push(branch.detail);
+      if (branch.confidence !== null && branch.confidence !== undefined) proof.push(`${confidence(branch.confidence)} confidence`);
+      setText(`branch-${branch.key}-proof`, proof.length ? proof.join(" · ") : "Provenance unavailable");
+    }
   }
 
   function renderResources(s) {
@@ -286,19 +591,48 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     setText("gear-decision", sentence(s.loadoutDecision));
   }
 
-  function renderRebirth(s) {
-    const hold = Boolean(s.rebirthExecutionHold);
-    byId("rebirth-heading")?.closest(".rebirth-panel")?.setAttribute("data-state", hold ? "hold" : "safe");
-    setText("rebirth-state", hold ? "unscheduled safety hold" : `${duration(Math.max(0, number(s.rebirthSeconds) - number(s.rebirthElapsed)))} remaining`);
-    setText("rebirth-reason", sentence(s.rebirthReason));
-    setText("rebirth-current", `${scientific(s.rebirthCurrentAttackMultiplier)} / ${scientific(s.rebirthCurrentDefenseMultiplier)}`);
-    setText("rebirth-preview", `${scientific(s.rebirthNextAttackMultiplierPreview)} / ${scientific(s.rebirthNextDefenseMultiplierPreview)}`);
-    const minimumRatio = number(s.rebirthMinimumNumberRatio, Math.min(number(s.rebirthProjectedAttackMultiplier), number(s.rebirthProjectedDefenseMultiplier)));
-    setText("rebirth-ratio", `${minimumRatio.toFixed(minimumRatio >= 0.1 ? 4 : 8)}× · ${s.rebirthNumberNonRegression ? "safe" : "weaker"}`);
+  function renderRebirth(s, observability) {
+    const rebirth = observability.rebirth;
+    setText("rebirth-state", rebirth.actionLabel);
+    setText("rebirth-reason", sentence(rebirth.reason));
+    setText("rebirth-policy", rebirth.actionLabel);
+    setText("rebirth-next-action", rebirth.action === "reset-at-checkpoint" ? "Execute verified native rebirth"
+      : rebirth.action === "reset-due" ? "Verify and execute now"
+        : rebirth.action === "no-reset-challenge" ? "Continue the active challenge"
+          : rebirth.action === "hold" ? "Wait for a finite admitted checkpoint"
+            : rebirth.action === "disabled" ? "Observe only" : "Await complete telemetry");
+    setText("rebirth-reset-eta", optionalDuration(rebirth.resetEtaSeconds, rebirth.noResetHold ? "No reset scheduled" : "Unavailable"));
+    setText("rebirth-hold", rebirth.noResetHold ? "Yes" : "No");
+    setText("rebirth-current", rebirth.currentAttack === null || rebirth.currentDefense === null
+      ? "Unavailable" : `${scientific(rebirth.currentAttack)} / ${scientific(rebirth.currentDefense)}`);
+    setText("rebirth-preview", rebirth.previewAttack === null || rebirth.previewDefense === null
+      ? "Unavailable" : `${scientific(rebirth.previewAttack)} / ${scientific(rebirth.previewDefense)}`);
+    setText("rebirth-ratio", `${multiplierRatio(rebirth.previewAttackRatio)} / ${multiplierRatio(rebirth.previewDefenseRatio)}`);
+    setText("rebirth-selected-ratio", multiplierRatio(rebirth.selectedCheckpointWorstRatio));
+    setText("rebirth-reset-recovery", optionalDuration(rebirth.resetRecoveryEtaSeconds));
+    setText("rebirth-continue-recovery", optionalDuration(rebirth.continueRecoveryEtaSeconds));
+    setText("rebirth-cycle-recovery", optionalDuration(rebirth.selectedCycleRecoveryEtaSeconds));
+    setText("rebirth-next-positive", optionalDuration(rebirth.nextPositiveEtaSeconds, rebirth.noResetHold ? "No finite candidate yet" : "Not needed"));
+    setText("rebirth-next-evaluation", optionalDuration(rebirth.nextEvaluationEtaSeconds, "Every live control tick"));
     setText("rebirth-catchup", `${shortNumber(s.rebirthExpectedCatchupExp)} XP · ${shortNumber(s.rebirthExpectedCatchupExpPerHour)}/h`);
     setText("rebirth-ap", `${shortNumber(s.rebirthOptimizerProjectedAp || s.rebirthProjectedAp)} AP`);
-    setText("rebirth-candidates", `${number(s.rebirthCandidateCount).toLocaleString()} · ${optimizerModelLabel(s.rebirthOptimizerModel)}`);
-    setText("rebirth-safety", sentence(s.rebirthSafetyBlockReason || (s.rebirthNumberNonRegression ? "Both native Number previews preserve the currently banked multipliers" : "Native preview would make this run weaker")));
+    setText("rebirth-candidates", `${number(s.rebirthCandidateCount).toLocaleString()} · ${text(s.rebirthOptimizerModel, "model pending")}`);
+    setText("rebirth-safety", sentence(rebirth.etaReason || rebirth.recoveryReason || s.rebirthSafetyBlockReason
+      || (s.rebirthNumberNonRegression ? "Native Number is non-decreasing at this selected event boundary" : "Native Number loss is priced by the selected branch; it is not an execution prohibition")));
+  }
+
+  function renderChallenge(observability) {
+    const challenge = observability.challenge;
+    setText("challenge-state", challenge.active ? "active" : challenge.admitted ? "admitted" : "not admitted");
+    setText("challenge-reason", sentence(challenge.reason));
+    setText("challenge-name", challenge.label);
+    setText("challenge-entry-eta", challenge.active ? "Already active" : optionalDuration(challenge.entryEtaSeconds));
+    setText("challenge-clear-eta", optionalDuration(challenge.clearEtaSeconds));
+    setText("challenge-recovery-eta", optionalDuration(challenge.recoveryEtaSeconds));
+    setText("challenge-target-boss", challenge.targetLevel !== null && challenge.targetLevel !== undefined
+      ? `Level ${challenge.targetLevel}` : challenge.targetBoss === null ? "Unavailable" : `Boss ${challenge.targetBoss}`);
+    setText("challenge-admission", challenge.active ? "Native challenge state active"
+      : challenge.admitted ? "Source-specific admission passed" : "Fail-closed; no entry scheduled");
   }
 
   function renderTraining(s) {
@@ -340,7 +674,6 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
       const mapped = mapRow(record, index);
       const tr = document.createElement("tr");
       if (mapped.className) tr.className = mapped.className;
-      if (mapped.tone) tr.dataset.tone = mapped.tone;
       for (const value of mapped.values) {
         const td = document.createElement("td");
         td.textContent = text(value);
@@ -484,8 +817,6 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     }
     list.replaceChildren(...events.slice(0, 30).map((event) => {
       const item = document.createElement("li");
-      item.dataset.importance = text(event.importance, "normal").toLowerCase();
-      item.dataset.category = text(event.category || event.kind, "event").toLowerCase();
       const timeNode = document.createElement("span");
       timeNode.className = "event-time";
       timeNode.textContent = text(event.clock || event.time, "—");
@@ -500,27 +831,83 @@ client sends no commands, persists no game data, and exposes no mutation endpoin
     }));
   }
 
+  function renderActionErrors(errors, observability) {
+    const list = byId("action-error-list");
+    const records = Array.isArray(errors) ? errors : [];
+    const transactionError = observability.transaction.error;
+    const displayed = transactionError ? [{
+      clock: "now",
+      category: "TRANSACTION",
+      severity: "critical",
+      message: transactionError,
+      count: 1,
+    }, ...records.filter((entry) => entry.message !== transactionError)] : records;
+    setText("alerts-summary", displayed.length
+      ? `${displayed.length} distinct recent signal${displayed.length === 1 ? "" : "s"}`
+      : "no current action errors");
+    if (!displayed.length) {
+      list.innerHTML = "<li>No action failures or safety rejections are present in the current feed.</li>";
+      return;
+    }
+    list.replaceChildren(...displayed.map((entry) => {
+      const item = document.createElement("li");
+      item.dataset.severity = text(entry.severity, "warning");
+      const timeNode = document.createElement("span");
+      timeNode.className = "event-time";
+      timeNode.textContent = text(entry.clock, "—");
+      const kind = document.createElement("span");
+      kind.className = "event-kind";
+      kind.textContent = `${text(entry.category, "error")}${number(entry.count, 1) > 1 ? ` ×${number(entry.count, 1)}` : ""}`;
+      const message = document.createElement("span");
+      message.className = "event-message";
+      message.textContent = text(entry.message, "—");
+      item.append(timeNode, kind, message);
+      return item;
+    }));
+  }
+
   function renderEnvelope(envelope) {
     if (!envelope || typeof envelope !== "object" || !envelope.state) throw new Error("invalid telemetry envelope");
     const s = envelope.state;
+    const fallback = fallbackObservability(s);
+    const incoming = envelope.observability && typeof envelope.observability === "object" ? envelope.observability : {};
+    const observability = {
+      rebirth: { ...fallback.rebirth, ...(incoming.rebirth || {}) },
+      challenge: { ...fallback.challenge, ...(incoming.challenge || {}) },
+      identity: { ...fallback.identity, ...(incoming.identity || {}) },
+      transaction: { ...fallback.transaction, ...(incoming.transaction || {}) },
+      difficulty: { ...fallback.difficulty, ...(incoming.difficulty || {}) },
+      end: { ...fallback.end, ...(incoming.end || {}) },
+      authority: { ...fallback.authority, ...(incoming.authority || {}), routes: { ...fallback.authority.routes, ...(incoming.authority?.routes || {}) } },
+      capacity: { ...fallback.capacity, ...(incoming.capacity || {}) },
+      scheduler: { ...fallback.scheduler, ...(incoming.scheduler || {}) },
+      bindings: { ...fallback.bindings, ...(incoming.bindings || {}) },
+    };
     const age = Math.max(0, number(envelope.stateAgeSeconds, 9999));
-    const live = s.synced && s.automationTransactionComplete && age <= 5;
+    const live = s.synced && observability.transaction.complete && observability.identity.verifiedEnvelope && age <= 5;
     setConnection(live ? "live" : "stale", live
       ? `Snapshot #${number(s.decisionSequence).toLocaleString()} · ${age.toFixed(1)}s old · ${publicFeed ? "read-only laptop feed" : "local client"}`
-      : `Latest snapshot is ${duration(age)} old or has not completed a synchronized transaction.`);
+      : `Latest snapshot is ${duration(age)} old, not transaction-complete, or outside the deployment/decision epoch.`);
     byId("stale-banner").hidden = live;
     byId("stale-banner").textContent = live ? "" : `The latest ${publicFeed ? "laptop" : "local"} snapshot is stale or partial. Values below are retained for diagnosis and are not proof of current actions.`;
-    renderHeadline(s);
-    renderRoute(s);
-    renderStrategy(s);
+    const errorBanner = byId("action-error-banner");
+    const transactionAlert = ["error", "quarantined"].includes(stateToken(observability.transaction.status));
+    errorBanner.hidden = !transactionAlert;
+    errorBanner.textContent = transactionAlert
+      ? `Latest automation transaction ${text(observability.transaction.status, "failure")}: ${text(observability.transaction.error, "inspect root epoch and quarantined-step counts")}` : "";
+    renderHeadline(s, observability);
+    renderRoute(s, observability);
+    renderExecution(envelope, observability);
     renderResources(s);
     renderCombatInventory(s);
-    renderRebirth(s);
+    renderRebirth(s, observability);
+    renderChallenge(observability);
     renderTraining(s);
     renderCharacter(s);
     renderInventory(s);
     renderPermanent(s);
     renderUnlocks(s);
+    renderActionErrors(envelope.actionErrors, observability);
     renderEvents(envelope.events);
     refreshTableFilters();
     lastSequence = number(s.decisionSequence, lastSequence);

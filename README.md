@@ -16,9 +16,9 @@ full mechanic-unlock catalog, and consequential key events. Locked systems remai
 progression context instead of disappearing from the interface.
 
 The first view also translates raw telemetry into the strategy currently in force: the exact
-loadout and objective, admitted resource sinks, Adventure/ITOPOD route, validated purchase
-targets, and the strict Number-preservation gate on rebirths. Low-chroma blue, green, amber, and
-red surfaces group related decisions and risks in both themes without relying on color alone.
+deployment/decision epoch, mutation root, loaded-assembly native-binding coverage, staged
+authority, Adventure/ITOPOD route, validated purchase targets, and current reset/challenge policy.
+Held, pending, committed, and quarantined states stay distinct without relying on color alone.
 
 The public site contains no save file, telemetry archive, authentication token, injector, or game
 control endpoint. It discovers the laptop's current HTTPS Cloudflare Quick Tunnel from a public
