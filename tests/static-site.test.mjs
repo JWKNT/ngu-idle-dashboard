@@ -1,10 +1,10 @@
 /*
 FILE PURPOSE
 
-These dependency-free Node tests protect the dashboard's information architecture, deployment,
-producer/consumer bindings, and read-only contract. They verify the first-view metrics, execution
-envelope, native-binding health, player-facing priorities, complete resource maps, active growth,
-the Adventure journal, comprehensive game-state sections, public endpoint discovery, DOM target
+These dependency-free Node tests protect the dashboard's information architecture and read-only
+contract. They verify the first-view metrics, adjacent priorities/current-route view, complete
+resource maps, active growth, Adventure journal, inventory/equipped-gear glances, comprehensive
+game-state sections, public endpoint discovery, DOM target
 completeness, and absence of mutation methods.
 */
 
@@ -36,8 +36,8 @@ test("browser client is read-only and discovers the current public laptop feed",
   assert.doesNotMatch(app, /localStorage|sessionStorage|indexedDB/);
 });
 
-test("dashboard exposes the player overview, execution envelope, and complete progression reference", () => {
-  for (const id of ["priorities", "resources", "growth", "activity", "now", "execution", "alerts", "combat", "character", "inventory", "permanent", "unlocks", "events"]) {
+test("dashboard exposes the player overview and complete progression reference", () => {
+  for (const id of ["priorities", "now", "resources", "growth", "activity", "alerts", "combat", "character", "inventory", "permanent", "unlocks", "events"]) {
     assert.match(index, new RegExp(`id="${id}"`));
   }
   for (const body of ["gear-body", "inventory-body", "item-list-body", "perks-body", "exp-purchases-body", "ap-purchases-body", "ngu-body", "hacks-body", "wishes-body", "fruit-body", "digger-beard-body"]) {
@@ -47,28 +47,24 @@ test("dashboard exposes the player overview, execution envelope, and complete pr
   assert.match(app, /renderUnlocks/);
   assert.match(app, /mechanicUnlocks/);
   assert.match(app, /rebirthNumberNonRegression/);
-  assert.match(index, /id="binding-state"/);
-  assert.match(index, /id="binding-coverage"/);
-  assert.match(app, /nativeBindingDescriptorCount/);
-  assert.match(app, /nativeBindingFailureCount/);
   assert.match(app, /function renderPriorities/);
   assert.match(app, /function renderAllocationList/);
   assert.match(app, /function renderGrowth/);
   assert.match(app, /function renderActivity/);
   assert.match(app, /resourceAllocationSummary/);
   assert.match(app, /envelope\.adventureLog/);
+  assert.match(index, /id="gear-glance-list"/);
+  assert.match(app, /Array\.isArray\(s\.equippedGear\)/);
 });
 
-test("current strategy and fail-closed execution states are explicit", () => {
-  for (const id of ["transaction-state", "scheduler-status", "authority-list", "rebirth-policy", "challenge-admission"]) {
+test("current strategy stays explicit without the redundant next-actions section", () => {
+  for (const id of ["rebirth-policy", "challenge-admission"]) {
     assert.match(index, new RegExp(`id="${id}"`));
   }
-  assert.match(app, /function renderExecution/);
+  assert.doesNotMatch(index, /What can happen next/);
+  assert.doesNotMatch(index, /id="execution"/);
+  assert.doesNotMatch(app, /function renderExecution/);
   assert.match(app, /Quarantined/);
-  assert.match(app, /LoadedAssemblyMetadata/);
-  assert.match(styles, /--pending:/);
-  assert.match(styles, /--held:/);
-  assert.match(styles, /--quarantined:/);
 });
 
 test("large reference tables use text nodes and local filtering", () => {
@@ -86,10 +82,10 @@ test("every JavaScript DOM binding resolves to an element in the dashboard shell
   assert.deepEqual(missing, [], `unbound dashboard element IDs: ${missing.join(", ")}`);
 });
 
-test("telemetry rendering preserves unavailable values and exact binding counts", () => {
+test("telemetry rendering preserves unavailable values and allocation proof fields", () => {
   assert.match(app, /optionalNumber/);
   assert.match(app, /nativeBindingsComplete/);
-  assert.match(app, /bindingCounts/);
-  assert.match(app, /failureSummary/);
+  assert.match(app, /resourceAllocationSummary/);
+  assert.match(app, /summary\.groups/);
   assert.doesNotMatch(app, /nativeBindingFailureCount\s*\|\|\s*0/);
 });
