@@ -3,8 +3,9 @@ FILE PURPOSE
 
 These dependency-free Node tests protect the dashboard's information architecture, deployment,
 producer/consumer bindings, and read-only contract. They verify the first-view metrics, execution
-envelope, native-binding health, comprehensive game-state sections, public endpoint discovery,
-DOM target completeness, and absence of mutation methods.
+envelope, native-binding health, player-facing priorities, complete resource maps, active growth,
+the Adventure journal, comprehensive game-state sections, public endpoint discovery, DOM target
+completeness, and absence of mutation methods.
 */
 
 import assert from "node:assert/strict";
@@ -20,6 +21,7 @@ test("dashboard uses the shared site theme and required headline metrics", () =>
   assert.match(index, /id="metric-rebirth"/);
   assert.match(index, /id="metric-challenge"/);
   assert.match(index, /id="metric-boss"/);
+  assert.match(index, /id="metric-boss-record"/);
   assert.match(index, /id="metric-adventure"/);
   assert.match(index, /id="metric-exp"/);
 });
@@ -34,8 +36,8 @@ test("browser client is read-only and discovers the current public laptop feed",
   assert.doesNotMatch(app, /localStorage|sessionStorage|indexedDB/);
 });
 
-test("dashboard exposes the execution envelope and complete progression reference", () => {
-  for (const id of ["now", "execution", "alerts", "resources", "combat", "character", "inventory", "permanent", "unlocks", "events"]) {
+test("dashboard exposes the player overview, execution envelope, and complete progression reference", () => {
+  for (const id of ["priorities", "resources", "growth", "activity", "now", "execution", "alerts", "combat", "character", "inventory", "permanent", "unlocks", "events"]) {
     assert.match(index, new RegExp(`id="${id}"`));
   }
   for (const body of ["gear-body", "inventory-body", "item-list-body", "perks-body", "exp-purchases-body", "ap-purchases-body", "ngu-body", "hacks-body", "wishes-body", "fruit-body", "digger-beard-body"]) {
@@ -49,6 +51,12 @@ test("dashboard exposes the execution envelope and complete progression referenc
   assert.match(index, /id="binding-coverage"/);
   assert.match(app, /nativeBindingDescriptorCount/);
   assert.match(app, /nativeBindingFailureCount/);
+  assert.match(app, /function renderPriorities/);
+  assert.match(app, /function renderAllocationList/);
+  assert.match(app, /function renderGrowth/);
+  assert.match(app, /function renderActivity/);
+  assert.match(app, /resourceAllocationSummary/);
+  assert.match(app, /envelope\.adventureLog/);
 });
 
 test("current strategy and fail-closed execution states are explicit", () => {
