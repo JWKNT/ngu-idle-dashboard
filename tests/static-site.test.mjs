@@ -17,7 +17,8 @@ const app = await readFile(new URL("../assets/app.js", import.meta.url), "utf8")
 const styles = await readFile(new URL("../assets/styles.css", import.meta.url), "utf8");
 
 test("dashboard uses the shared site theme and required headline metrics", () => {
-  assert.match(index, /https:\/\/jehlp\.net\/site-theme\/v1\/base\.css/);
+  assert.match(index, /https:\/\/jehlp\.net\/site-theme\/v2\/base\.css/);
+  assert.match(index, /favicons\/ngu-idle-dashboard\.png/);
   assert.match(index, /id="metric-rebirth"/);
   assert.match(index, /id="metric-challenge"/);
   assert.match(index, /id="metric-boss"/);
