@@ -18,16 +18,15 @@
     <link rel="stylesheet" href="https://jehlp.net/site-theme/v2/base.css">
     <link rel="stylesheet" href="https://jehlp.net/site-theme/v2/components.css">
     <script src="https://jehlp.net/site-theme/v2/components.js" defer></script>
-    <link rel="stylesheet" href="assets/styles.css?v=20260905.1">
+    <link rel="stylesheet" href="assets/styles.css?v=20260905.2">
     <script src="assets/app.js?v=20260905.1" defer></script>
   </head>
-  <body>
+  <body data-site-tone="teal">
     <a class="skip-link" href="#dashboard">Skip to dashboard</a>
 
-    <header class="site-header">
-      <a class="site-title" href="./">NGU Idle Dashboard</a>
+    <header class="site-header site-header--identity">
+      <div class="site-brand"><span class="site-mark" aria-hidden="true">∴</span><a class="site-title" href="./">NGU Idle</a></div>
       <nav aria-label="Site links">
-        <a href="https://jehlp.net/">Projects</a>
         <a href="https://github.com/JWKNT/ngu-idle-dashboard">Source</a>
         <button class="theme-toggle" type="button" data-theme-toggle aria-label="Use dark theme" aria-pressed="false">◐</button>
       </nav>
@@ -35,8 +34,8 @@
 
     <main id="dashboard" class="dashboard-shell">
       <section class="dashboard-intro" aria-labelledby="page-title">
-        <div><p class="eyebrow">Live progression client</p><h1 id="page-title">Current run</h1><p id="objective" class="intro-copy">Waiting for the live autopilot state.</p></div>
-        <div class="connection-block"><p id="connection-state" class="connection-state" data-state="connecting">Connecting to laptop…</p><p id="connection-detail">Live state is served read-only from the laptop.</p></div>
+        <div><h1 id="page-title">Current run</h1><p id="objective" class="intro-copy">Waiting for live state.</p></div>
+        <div class="connection-block"><p id="connection-state" class="connection-state" data-state="connecting">Connecting to laptop…</p><p id="connection-detail">Read-only live state.</p></div>
       </section>
 
       <dl class="headline-metrics" aria-label="Current progression summary">
@@ -51,8 +50,8 @@
       <nav class="section-index" data-section-nav aria-label="Dashboard sections"><a href="#priorities">Priorities</a><a href="#now">Current action</a><a href="#resources">Allocation</a><a href="#growth">Growth</a><a href="#activity">Adventure</a><a href="#alerts">Diagnostics</a><a href="#combat">Combat</a><a href="#character">Character</a><a href="#inventory">Inventory</a><a href="#permanent">Permanent</a><a href="#unlocks">Unlocks</a><a href="#events">Events</a></nav>
 
       <section id="priorities" class="section-block priority-section" aria-labelledby="priorities-heading">
-        <div class="section-heading"><div><p class="section-kicker">Right now</p><h2 id="priorities-heading">Top three priorities</h2></div><p id="priority-summary" class="section-meta">Ranked from the current progression gates.</p></div>
-        <ol id="priority-list" class="priority-list"><li><span class="priority-rank">1</span><div><strong>Waiting for live priorities</strong><p>The next synchronized snapshot will explain what matters most.</p></div></li></ol>
+        <div class="section-heading"><div><h2 id="priorities-heading">Priorities</h2></div><p id="priority-summary" class="section-meta">Current progression gates.</p></div>
+        <ol id="priority-list" class="priority-list"><li><span class="priority-rank">1</span><div><strong>Waiting for live priorities</strong></div></li></ol>
       </section>
 
       <section id="now" class="section-block now-section" aria-labelledby="route-heading">
@@ -62,7 +61,7 @@
           <dl class="compact-facts"><div><dt>Run mode</dt><dd id="fact-mode">—</dd></div><div><dt>Run age</dt><dd id="fact-run-age">—</dd></div><div><dt>Difficulty</dt><dd id="fact-difficulty">—</dd></div><div><dt>Selected boss</dt><dd id="fact-selected-boss">—</dd></div></dl>
         </div>
         <div class="subsection rebirth-panel" aria-labelledby="rebirth-heading">
-          <div class="subsection-heading"><div><p class="section-kicker">Rebirth</p><h3 id="rebirth-heading">Reset decision</h3></div><p id="rebirth-state" class="section-meta">—</p></div>
+          <div class="subsection-heading"><div><h3 id="rebirth-heading">Rebirth decision</h3></div><p id="rebirth-state" class="section-meta">—</p></div>
           <p id="rebirth-reason" class="lead-note">Waiting for optimizer evidence.</p>
           <dl class="decision-strip"><div><dt>Current policy</dt><dd id="rebirth-policy">—</dd></div><div><dt>Next action</dt><dd id="rebirth-next-action">—</dd></div><div><dt>Reset ETA</dt><dd id="rebirth-reset-eta">—</dd></div><div><dt>No-reset hold</dt><dd id="rebirth-hold">—</dd></div></dl>
           <details class="rebirth-details">
@@ -72,7 +71,7 @@
           </details>
         </div>
         <div class="subsection challenge-panel" aria-labelledby="challenge-heading">
-          <div class="subsection-heading"><div><p class="section-kicker">Challenges</p><h3 id="challenge-heading">Challenge status</h3></div><p id="challenge-state" class="section-meta">—</p></div>
+          <div class="subsection-heading"><div><h3 id="challenge-heading">Challenge status</h3></div><p id="challenge-state" class="section-meta">—</p></div>
           <p id="challenge-reason" class="lead-note">Waiting for source-specific challenge evidence.</p>
           <dl class="challenge-facts"><div><dt>Challenge</dt><dd id="challenge-name">—</dd></div><div><dt>Entry ETA</dt><dd id="challenge-entry-eta">—</dd></div><div><dt>Clear ETA</dt><dd id="challenge-clear-eta">—</dd></div><div><dt>Recovery ETA</dt><dd id="challenge-recovery-eta">—</dd></div><div><dt>Target</dt><dd id="challenge-target-boss">—</dd></div><div><dt>Admission</dt><dd id="challenge-admission">—</dd></div><div><dt>Rebirth rule</dt><dd id="challenge-rebirth-policy">—</dd></div><div><dt>Rules</dt><dd id="challenge-rules">—</dd></div></dl>
         </div>
@@ -107,22 +106,22 @@
       </section>
 
       <section id="activity" class="section-block" aria-labelledby="activity-heading">
-        <div class="section-heading"><div><h2 id="activity-heading">Adventure log</h2></div><p id="activity-summary" class="section-meta">Useful outcomes only; ordinary attack-button spam is hidden.</p></div>
+        <div class="section-heading"><div><h2 id="activity-heading">Adventure</h2></div><p id="activity-summary" class="section-meta">Consequential outcomes only.</p></div>
         <div class="activity-grid">
-          <article><h3>Adventure journal</h3><ol id="adventure-log-list" class="adventure-log"><li data-tone="route"><span>—</span><p>Waiting for the current session.</p></li></ol></article>
-          <article><div class="card-heading"><h3>Inventory at a glance</h3><strong id="inventory-glance-summary">—</strong></div><p id="inventory-glance-policy" class="section-note">Waiting for the boost and collection policy.</p><ul id="inventory-glance-list" class="inventory-glance"><li><span>Waiting for inventory</span><strong>—</strong></li></ul></article>
+          <article><h3>Journal</h3><ol id="adventure-log-list" class="adventure-log"><li data-tone="route"><span>—</span><p>Waiting for the current session.</p></li></ol></article>
+          <article><div class="card-heading"><h3>Inventory</h3><strong id="inventory-glance-summary">—</strong></div><p id="inventory-glance-policy" class="section-note">Waiting for the boost and collection policy.</p><ul id="inventory-glance-list" class="inventory-glance"><li><span>Waiting for inventory</span><strong>—</strong></li></ul></article>
           <article><div class="card-heading"><h3>Equipped gear</h3><strong id="gear-glance-summary">—</strong></div><p id="gear-glance-policy" class="section-note">Waiting for the active loadout objective.</p><ul id="gear-glance-list" class="inventory-glance gear-glance"><li><span>Waiting for equipped gear</span><strong>—</strong></li></ul></article>
         </div>
       </section>
 
       <section id="alerts" class="section-block" aria-labelledby="alerts-heading">
-        <div class="section-heading"><div><p class="section-kicker">Problems</p><h2 id="alerts-heading">Recent errors and blocked actions</h2></div><p id="alerts-summary" class="section-meta">—</p></div>
-        <p class="lead-note">Repeated identical messages are grouped; counts cover only the exact deployment-bound producer session.</p>
+        <div class="section-heading"><div><h2 id="alerts-heading">Errors &amp; blocked actions</h2></div><p id="alerts-summary" class="section-meta">—</p></div>
+        <p class="lead-note">Identical messages are grouped. Counts cover this deployment-bound producer session only.</p>
         <ol id="action-error-list" class="event-list alert-list"><li class="empty-event">No action failures are present in the current feed.</li></ol>
       </section>
 
       <section id="combat" class="section-block" aria-labelledby="combat-heading">
-        <div class="section-heading"><div><p class="section-kicker">Combat</p><h2 id="combat-heading">Fight Boss, Adventure, and ITOPOD</h2></div><p id="combat-meta" class="section-meta">—</p></div>
+        <div class="section-heading"><div><h2 id="combat-heading">Combat</h2></div><p id="combat-meta" class="section-meta">—</p></div>
         <div class="three-column">
           <article><h3>Fight Boss</h3><dl class="data-list"><div><dt>Target</dt><dd id="combat-boss">—</dd></div><div><dt>Defeat model</dt><dd id="combat-eta">—</dd></div><div><dt>Attack / defense</dt><dd id="fight-stats">—</dd></div><div><dt>HP</dt><dd id="fight-hp">—</dd></div></dl><p id="combat-reason" class="section-note">Waiting for combat telemetry.</p></article>
           <article><h3>Adventure</h3><dl class="data-list"><div><dt>Route</dt><dd id="combat-zone">—</dd></div><div><dt>Power / toughness</dt><dd id="combat-stats">—</dd></div><div><dt>HP</dt><dd id="combat-hp">—</dd></div><div><dt>Collection</dt><dd id="combat-collection">—</dd></div></dl></article>
@@ -131,7 +130,7 @@
       </section>
 
       <section id="character" class="section-block" aria-labelledby="character-heading">
-        <div class="section-heading"><div><p class="section-kicker">Character</p><h2 id="character-heading">Stats, equipped gear, and Basic Training</h2></div><p id="gear-objective" class="section-meta">—</p></div>
+        <div class="section-heading"><div><h2 id="character-heading">Character</h2></div><p id="gear-objective" class="section-meta">—</p></div>
         <dl class="stat-ledger"><div><dt>Fight Attack</dt><dd id="stat-fight-attack">—</dd></div><div><dt>Fight Defense</dt><dd id="stat-fight-defense">—</dd></div><div><dt>Fight HP</dt><dd id="stat-fight-hp">—</dd></div><div><dt>Adventure Power</dt><dd id="stat-adventure-power">—</dd></div><div><dt>Adventure Toughness</dt><dd id="stat-adventure-toughness">—</dd></div><div><dt>Adventure HP</dt><dd id="stat-adventure-hp">—</dd></div><div><dt>Energy P / C / B</dt><dd id="stat-energy-pcb">—</dd></div><div><dt>Magic P / C / B</dt><dd id="stat-magic-pcb">—</dd></div><div><dt id="stat-res3-label">R3 P / C / B</dt><dd id="stat-res3-pcb">—</dd></div></dl>
         <p id="gear-decision" class="section-note">Waiting for loadout optimizer.</p>
         <details><summary>Equipped gear <span id="gear-summary">—</span></summary><div class="table-scroll" data-scroll-region aria-label="Equipped gear"><table><thead><tr><th>Slot</th><th>Item</th><th>Level</th><th>Attack</th><th>Defense</th><th>Specials</th></tr></thead><tbody id="gear-body"><tr><td colspan="6">Waiting for gear telemetry.</td></tr></tbody></table></div></details>
@@ -150,7 +149,7 @@
       </section>
 
       <section id="permanent" class="section-block" aria-labelledby="permanent-heading">
-        <div class="section-heading"><div><p class="section-kicker">Permanent progression</p><h2 id="permanent-heading">Perks, purchases, and persistent systems</h2></div><p class="section-meta">locked rows remain visible</p></div>
+        <div class="section-heading"><div><h2 id="permanent-heading">Permanent progression</h2></div></div>
         <details><summary>ITOPOD perks <span id="perks-summary">—</span></summary><label class="table-search">Filter perks <input type="search" data-filter-target="perks-body" placeholder="perk name, type, status"></label><div class="table-scroll" data-scroll-region aria-label="ITOPOD perks"><table><thead><tr><th>ID</th><th>Perk</th><th>Type</th><th>Level</th><th>Cost</th><th>Status</th></tr></thead><tbody id="perks-body"><tr><td colspan="6">Waiting for perk telemetry.</td></tr></tbody></table></div></details>
         <div class="two-column detail-pair">
           <details><summary>EXP purchases <span id="exp-purchases-summary">—</span></summary><div class="table-scroll" data-scroll-region aria-label="EXP purchases"><table><thead><tr><th>Upgrade</th><th>Value</th><th>Status</th></tr></thead><tbody id="exp-purchases-body"><tr><td colspan="3">Waiting for purchase telemetry.</td></tr></tbody></table></div></details>
@@ -166,17 +165,17 @@
       </section>
 
       <section id="unlocks" class="section-block" aria-labelledby="unlocks-heading">
-        <div class="section-heading"><div><p class="section-kicker">Game map</p><h2 id="unlocks-heading">Mechanic unlock catalog</h2></div><p id="unlocks-summary" class="section-meta">—</p></div>
-        <p class="lead-note">Every tracked system stays listed. Locked mechanics are a progression forecast, not missing dashboard data.</p>
+        <div class="section-heading"><div><h2 id="unlocks-heading">Unlocks</h2></div><p id="unlocks-summary" class="section-meta">—</p></div>
+        <p class="lead-note">Locked systems remain visible as progression targets.</p>
         <ul id="unlock-list" class="unlock-list"><li>Waiting for unlock telemetry.</li></ul>
       </section>
 
       <section id="events" class="section-block" aria-labelledby="events-heading">
-        <div class="section-heading"><div><p class="section-kicker">Consequential timeline</p><h2 id="events-heading">Key events</h2></div><p class="section-meta">current-session permanent gains, resets, records, unlocks, rare loot, deaths, and safety failures</p></div>
+        <div class="section-heading"><div><h2 id="events-heading">Key events</h2></div><p class="section-meta">Current session</p></div>
         <ol id="event-list" class="event-list"><li class="empty-event">Waiting for the live event stream.</li></ol>
       </section>
 
-      <footer class="dashboard-footer"><p>Read-only live telemetry from NGU Idle Autopilot. The <a href="https://github.com/JWKNT/ngu-idle-dashboard">dashboard source</a> contains no save data and cannot control the game.</p></footer>
+      <footer class="dashboard-footer"><p>NGU Idle Autopilot · Read-only telemetry. No save data or game controls. <a href="https://github.com/JWKNT/ngu-idle-dashboard">Source</a></p></footer>
     </main>
   </body>
 </html>
