@@ -5,7 +5,7 @@ These dependency-free Node tests protect the dashboard's information architectur
 contract. They verify the first-view metrics, adjacent priorities/current-route view, complete
 resource maps, active growth, Adventure journal, inventory/equipped-gear glances, comprehensive
 game-state sections, public endpoint discovery, DOM target
-completeness, and absence of mutation methods.
+completeness, source provenance outside the masthead, and absence of mutation methods.
 */
 
 import assert from "node:assert/strict";
@@ -35,6 +35,15 @@ test("browser client is read-only and discovers the current public laptop feed",
   assert.doesNotMatch(app, /http:\/\/127\.0\.0\.1:47635\/api\/state/);
   assert.doesNotMatch(app, /method:\s*["'](?:POST|PUT|PATCH|DELETE)/);
   assert.doesNotMatch(app, /localStorage|sessionStorage|indexedDB/);
+});
+
+test("masthead omits GitHub source links while the footer retains provenance", () => {
+  const header = index.match(/<header\b[^>]*>[\s\S]*?<\/header>/)?.[0];
+  const footer = index.match(/<footer\b[^>]*>[\s\S]*?<\/footer>/)?.[0];
+  assert.ok(header, "dashboard has a masthead");
+  assert.doesNotMatch(header, /href=["']https:\/\/github\.com\//);
+  assert.match(header, /data-theme-toggle/);
+  assert.match(footer, /href="https:\/\/github\.com\/JWKNT\/ngu-idle-dashboard"/);
 });
 
 test("dashboard exposes the player overview and complete progression reference", () => {
