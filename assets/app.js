@@ -21,6 +21,8 @@ exposes no mutation endpoint.
   let endpoint = publicFeed ? "" : "/api/state";
   let nextEndpointDiscovery = 0;
   const pollMs = 1000;
+  const requestTimeoutMs = 10000;
+  let polling = false;
   let lastSequence = -1;
 
   const byId = (id) => document.getElementById(id);
@@ -111,7 +113,7 @@ exposes no mutation endpoint.
     return amount === null || amount < 0 || amount > 1 ? "Unavailable" : `${compactDecimal(amount * 100, 1)}%`;
   }
 
-  async function discoverEndpoint() {
+  async function discoverEndpoint(signal) {
     if (!publicFeed) return endpoint;
     if (endpoint) return endpoint;
     if (Date.now() < nextEndpointDiscovery) return "";
@@ -119,6 +121,7 @@ exposes no mutation endpoint.
     const response = await fetch(endpointDiscoveryUrl, {
       cache: "no-store",
       headers: { Accept: "application/vnd.github+json" },
+      signal,
     });
     if (!response.ok) throw new Error(`endpoint discovery returned ${response.status}`);
     const gist = await response.json();
@@ -949,10 +952,15 @@ exposes no mutation endpoint.
   }
 
   async function poll() {
+    // Keep slow or stalled responses from piling up and repainting newer state.
+    if (polling) return;
+    polling = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), requestTimeoutMs);
     try {
-      const requestEndpoint = await discoverEndpoint();
+      const requestEndpoint = await discoverEndpoint(controller.signal);
       if (!requestEndpoint) throw new Error("waiting for endpoint discovery retry");
-      const response = await fetch(requestEndpoint, { cache: "no-store", headers: { Accept: "application/json" } });
+      const response = await fetch(requestEndpoint, { cache: "no-store", headers: { Accept: "application/json" }, signal: controller.signal });
       if (!response.ok) throw new Error(`telemetry feed returned ${response.status}`);
       renderEnvelope(await response.json());
     } catch (error) {
@@ -962,6 +970,9 @@ exposes no mutation endpoint.
         : "The bot dashboard bridge is not responding. Start the automation client.");
       byId("stale-banner").hidden = false;
       byId("stale-banner").textContent = "Live game state is unavailable; the static dashboard remains online. The bot is still the telemetry authority.";
+    } finally {
+      window.clearTimeout(timeout);
+      polling = false;
     }
   }
 
