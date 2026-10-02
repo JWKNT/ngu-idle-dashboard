@@ -432,7 +432,7 @@ exposes no mutation endpoint.
       const detail = document.createElement("p"); detail.textContent = sentence(priority.detail);
       copy.append(title, detail); item.append(rank, copy); return item;
     }));
-    setText("priority-summary", "Ranked from active gates and verified live state; local utility is not a global speedrun proof.");
+    setText("priority-summary", "Rank uses active requirements and verified live state. Local utility does not prove a globally optimal speedrun.");
   }
 
   function renderRoute(s, observability) {
@@ -650,7 +650,7 @@ exposes no mutation endpoint.
     setText("rebirth-ap", `${shortNumber(s.rebirthOptimizerProjectedAp || s.rebirthProjectedAp)} AP`);
     setText("rebirth-candidates", `${number(s.rebirthCandidateCount).toLocaleString()} · ${text(s.rebirthOptimizerModel, "model pending")}`);
     setText("rebirth-safety", sentence(rebirth.etaReason || rebirth.recoveryReason || s.rebirthSafetyBlockReason
-      || (s.rebirthNumberNonRegression ? "Native Number is non-decreasing at this selected event boundary" : "Native Number loss is priced by the selected branch; it is not an execution prohibition")));
+      || (s.rebirthNumberNonRegression ? "Native Number is non-decreasing at this selected event boundary" : "The selected branch includes the cost of native Number loss. That loss does not prohibit execution")));
   }
 
   function renderChallenge(observability) {
@@ -848,7 +848,7 @@ exposes no mutation endpoint.
   function renderEvents(events) {
     const list = byId("event-list");
     if (!Array.isArray(events) || !events.length) {
-      list.innerHTML = '<li class="empty-event">No key events have been recorded by the live feed yet.</li>';
+      list.innerHTML = '<li class="empty-event">The live feed has no recorded key events.</li>';
       return;
     }
     list.replaceChildren(...events.slice(0, 30).map((event) => {
@@ -925,7 +925,7 @@ exposes no mutation endpoint.
       ? `Snapshot #${number(s.decisionSequence).toLocaleString()} · ${age.toFixed(1)}s old · ${publicFeed ? "read-only laptop feed" : "local client"}`
       : `Latest snapshot is ${duration(age)} old, not transaction-complete, or outside the deployment/decision epoch.`);
     byId("stale-banner").hidden = live;
-    byId("stale-banner").textContent = live ? "" : `The latest ${publicFeed ? "laptop" : "local"} snapshot is stale or partial. Values below are retained for diagnosis and are not proof of current actions.`;
+    byId("stale-banner").textContent = live ? "" : `The latest ${publicFeed ? "laptop" : "local"} snapshot is stale or partial. The values below remain for diagnosis. They do not prove current actions.`;
     const errorBanner = byId("action-error-banner");
     const transactionAlert = ["error", "quarantined"].includes(stateToken(observability.transaction.status));
     errorBanner.hidden = !transactionAlert;
@@ -966,10 +966,10 @@ exposes no mutation endpoint.
     } catch (error) {
       if (publicFeed && Date.now() >= nextEndpointDiscovery) endpoint = "";
       setConnection("offline", publicFeed
-        ? "The laptop feed is unavailable. The laptop, game, and dashboard bridge must be running and awake."
+        ? "The laptop feed is unavailable. The laptop must be awake. The game and dashboard bridge must run."
         : "The bot dashboard bridge is not responding. Start the automation client.");
       byId("stale-banner").hidden = false;
-      byId("stale-banner").textContent = "Live game state is unavailable; the static dashboard remains online. The bot is still the telemetry authority.";
+      byId("stale-banner").textContent = "Live game state is unavailable. The static dashboard remains online. The bot remains the source of telemetry.";
     } finally {
       window.clearTimeout(timeout);
       polling = false;

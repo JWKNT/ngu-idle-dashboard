@@ -59,7 +59,7 @@
       <section id="now" class="section-block now-section" aria-labelledby="route-heading">
         <div class="section-heading"><div><h2 id="route-heading">Current action</h2></div><p id="run-stage" class="section-meta">—</p></div>
         <div class="route-grid">
-          <div class="route-primary"><h3 id="route-title">Waiting for a synchronized transaction</h3><p id="route-reason">The dashboard reports confirmed game state, not intended inputs.</p></div>
+          <div class="route-primary"><h3 id="route-title">Waiting for a synchronized transaction</h3><p id="route-reason">The dashboard reports confirmed game state. It does not report planned inputs as completed actions.</p></div>
           <dl class="compact-facts"><div><dt>Run mode</dt><dd id="fact-mode">—</dd></div><div><dt>Run age</dt><dd id="fact-run-age">—</dd></div><div><dt>Difficulty</dt><dd id="fact-difficulty">—</dd></div><div><dt>Selected boss</dt><dd id="fact-selected-boss">—</dd></div></dl>
         </div>
         <div class="subsection rebirth-panel" aria-labelledby="rebirth-heading">
@@ -97,7 +97,7 @@
       </section>
 
       <section id="growth" class="section-block" aria-labelledby="growth-heading">
-        <div class="section-heading"><div><h2 id="growth-heading">Growth</h2></div><p id="growth-summary" class="section-meta">Reset-local systems are shown separately from permanent progress.</p></div>
+        <div class="section-heading"><div><h2 id="growth-heading">Growth</h2></div><p id="growth-summary" class="section-meta">This section shows systems that reset at rebirth. Permanent progress has a separate section.</p></div>
         <div class="growth-grid">
           <article id="growth-augment" data-state="held"><div><span>Augments</span><strong id="growth-augment-value">—</strong></div><p id="growth-augment-detail">Waiting for Augment telemetry.</p></article>
           <article id="growth-wandoos" data-state="held"><div><span>Wandoos</span><strong id="growth-wandoos-value">—</strong></div><p id="growth-wandoos-detail">Waiting for Wandoos telemetry.</p></article>
@@ -108,7 +108,7 @@
       </section>
 
       <section id="activity" class="section-block" aria-labelledby="activity-heading">
-        <div class="section-heading"><div><h2 id="activity-heading">Adventure</h2></div><p id="activity-summary" class="section-meta">Consequential outcomes only.</p></div>
+        <div class="section-heading"><div><h2 id="activity-heading">Adventure</h2></div><p id="activity-summary" class="section-meta">This section shows outcomes that affect game progress.</p></div>
         <div class="activity-grid">
           <article><h3>Journal</h3><ol id="adventure-log-list" class="adventure-log"><li data-tone="route"><span>—</span><p>Waiting for the current session.</p></li></ol></article>
           <article><div class="card-heading"><h3>Inventory</h3><strong id="inventory-glance-summary">—</strong></div><p id="inventory-glance-policy" class="section-note">Waiting for the boost and collection policy.</p><ul id="inventory-glance-list" class="inventory-glance"><li><span>Waiting for inventory</span><strong>—</strong></li></ul></article>
@@ -118,7 +118,7 @@
 
       <section id="alerts" class="section-block" aria-labelledby="alerts-heading">
         <div class="section-heading"><div><h2 id="alerts-heading">Errors &amp; blocked actions</h2></div><p id="alerts-summary" class="section-meta">—</p></div>
-        <p class="lead-note">Identical messages are grouped. Counts cover this deployment-bound producer session only.</p>
+        <p class="lead-note">The dashboard groups identical messages. Counts apply only to the current producer session for this deployment.</p>
         <ol id="action-error-list" class="event-list alert-list"><li class="empty-event">No action failures are present in the current feed.</li></ol>
       </section>
 
