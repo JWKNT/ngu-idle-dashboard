@@ -53,7 +53,9 @@ test("dashboard exposes the player overview and complete progression reference",
   for (const body of ["gear-body", "inventory-body", "item-list-body", "perks-body", "exp-purchases-body", "ap-purchases-body", "ngu-body", "hacks-body", "wishes-body", "fruit-body", "digger-beard-body"]) {
     assert.match(index, new RegExp(`id="${body}"`));
   }
-  assert.match(index, /Not yet unlocked/);
+  assert.match(app, /Not yet unlocked/);
+  assert.match(index, /id="res3-decision">Waiting for Resource 3 telemetry\./);
+  assert.match(index, /id="action-error-list"[^>]*><li[^>]*>Waiting for action-failure telemetry\./);
   assert.match(app, /renderUnlocks/);
   assert.match(app, /mechanicUnlocks/);
   assert.match(app, /rebirthNumberNonRegression/);
