@@ -432,7 +432,6 @@ exposes no mutation endpoint.
       const detail = document.createElement("p"); detail.textContent = sentence(priority.detail);
       copy.append(title, detail); item.append(rank, copy); return item;
     }));
-    setText("priority-summary", "Rank uses active requirements and verified live state. Local utility does not prove a globally optimal speedrun.");
   }
 
   function renderRoute(s, observability) {
@@ -969,7 +968,7 @@ exposes no mutation endpoint.
         ? "The laptop feed is unavailable. The laptop must be awake. The game and dashboard bridge must run."
         : "The bot dashboard bridge is not responding. Start the automation client.");
       byId("stale-banner").hidden = false;
-      byId("stale-banner").textContent = "Live game state is unavailable. The static dashboard remains online. The bot remains the source of telemetry.";
+      byId("stale-banner").textContent = "Live game state is unavailable.";
     } finally {
       window.clearTimeout(timeout);
       polling = false;

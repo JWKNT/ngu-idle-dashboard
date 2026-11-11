@@ -52,7 +52,7 @@
       <nav class="section-index" data-section-nav aria-label="Dashboard sections"><a href="#priorities">Priorities</a><a href="#now">Current action</a><a href="#resources">Allocation</a><a href="#growth">Growth</a><a href="#activity">Adventure</a><a href="#alerts">Diagnostics</a><a href="#combat">Combat</a><a href="#character">Character</a><a href="#inventory">Inventory</a><a href="#permanent">Permanent</a><a href="#unlocks">Unlocks</a><a href="#events">Events</a></nav>
 
       <section id="priorities" class="section-block priority-section" aria-labelledby="priorities-heading">
-        <div class="section-heading"><div><h2 id="priorities-heading">Priorities</h2></div><p id="priority-summary" class="section-meta">Current progression gates.</p></div>
+        <div class="section-heading"><div><h2 id="priorities-heading">Priorities</h2></div><p id="priority-summary" class="section-meta"></p></div>
         <ol id="priority-list" class="priority-list"><li><span class="priority-rank">1</span><div><strong>Waiting for live priorities</strong></div></li></ol>
       </section>
 
@@ -97,7 +97,7 @@
       </section>
 
       <section id="growth" class="section-block" aria-labelledby="growth-heading">
-        <div class="section-heading"><div><h2 id="growth-heading">Growth</h2></div><p id="growth-summary" class="section-meta">This section shows systems that reset at rebirth. Permanent progress has a separate section.</p></div>
+        <div class="section-heading"><div><h2 id="growth-heading">Growth</h2></div><p id="growth-summary" class="section-meta">—</p></div>
         <div class="growth-grid">
           <article id="growth-augment" data-state="held"><div><span>Augments</span><strong id="growth-augment-value">—</strong></div><p id="growth-augment-detail">Waiting for Augment telemetry.</p></article>
           <article id="growth-wandoos" data-state="held"><div><span>Wandoos</span><strong id="growth-wandoos-value">—</strong></div><p id="growth-wandoos-detail">Waiting for Wandoos telemetry.</p></article>
@@ -108,7 +108,7 @@
       </section>
 
       <section id="activity" class="section-block" aria-labelledby="activity-heading">
-        <div class="section-heading"><div><h2 id="activity-heading">Adventure</h2></div><p id="activity-summary" class="section-meta">This section shows outcomes that affect game progress.</p></div>
+        <div class="section-heading"><div><h2 id="activity-heading">Adventure</h2></div><p id="activity-summary" class="section-meta">—</p></div>
         <div class="activity-grid">
           <article><h3>Journal</h3><ol id="adventure-log-list" class="adventure-log"><li data-tone="route"><span>—</span><p>Waiting for the current session.</p></li></ol></article>
           <article><div class="card-heading"><h3>Inventory</h3><strong id="inventory-glance-summary">—</strong></div><p id="inventory-glance-policy" class="section-note">Waiting for the boost and collection policy.</p><ul id="inventory-glance-list" class="inventory-glance"><li><span>Waiting for inventory</span><strong>—</strong></li></ul></article>
@@ -118,7 +118,6 @@
 
       <section id="alerts" class="section-block" aria-labelledby="alerts-heading">
         <div class="section-heading"><div><h2 id="alerts-heading">Errors &amp; blocked actions</h2></div><p id="alerts-summary" class="section-meta">—</p></div>
-        <p class="lead-note">The dashboard groups identical messages. Counts apply only to the current producer session for this deployment.</p>
         <ol id="action-error-list" class="event-list alert-list"><li class="empty-event">Waiting for action-failure telemetry.</li></ol>
       </section>
 
@@ -168,7 +167,6 @@
 
       <section id="unlocks" class="section-block" aria-labelledby="unlocks-heading">
         <div class="section-heading"><div><h2 id="unlocks-heading">Unlocks</h2></div><p id="unlocks-summary" class="section-meta">—</p></div>
-        <p class="lead-note">Locked systems remain visible as progression targets.</p>
         <ul id="unlock-list" class="unlock-list"><li>Waiting for unlock telemetry.</li></ul>
       </section>
 
